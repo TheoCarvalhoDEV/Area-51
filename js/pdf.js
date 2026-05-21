@@ -6,23 +6,21 @@ function generatePDF() {
   const element = document.getElementById('preview-content');
   if (!element) return;
 
-  const originalScrollY = window.scrollY;
-  window.scrollTo(0, 0);
-
-  // Clone o elemento para isolar de qualquer "overflow: hidden" ou "auto" dos pais
+  // Clone o elemento EM MEMÓRIA (sem adicionar ao DOM)
   const clone = element.cloneNode(true);
   
-  // Posiciona o clone no topo esquerdo do body
-  clone.style.position = 'absolute';
-  clone.style.top = '0';
-  clone.style.left = '0';
+  // Define os estilos do clone para uma renderização A4 perfeita no iframe do html2pdf
   clone.style.width = '800px';
-  clone.style.maxWidth = '800px';
   clone.style.margin = '0';
   clone.style.padding = '0';
   clone.style.boxShadow = 'none';
-  clone.style.zIndex = '999999';
-  clone.style.backgroundColor = 'white';
+  clone.style.border = 'none';
+  clone.style.background = 'white';
+  clone.style.position = 'static'; // Garante que não fuja da tela no worker
+  clone.style.transform = 'none';
+  clone.style.overflow = 'visible';
+  clone.style.height = 'auto';
+  clone.style.maxHeight = 'none';
 
   // Limpa highlights no clone
   clone.querySelectorAll('.highlight').forEach(el => {
@@ -31,12 +29,10 @@ function generatePDF() {
     el.style.borderBottom = 'none';
   });
 
-  document.body.appendChild(clone);
-
   const filename = (document.getElementById('contract-name') ? document.getElementById('contract-name').value : 'Contrato_Locacao') + '.pdf';
 
   const opt = {
-    margin:       [20, 20, 20, 20],
+    margin:       [15, 15, 15, 15],
     filename:     filename,
     image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 2, logging: false, useCORS: true },
@@ -44,8 +40,8 @@ function generatePDF() {
     pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'td', 'h1', 'h2', 'ul', 'p'] }
   };
 
+  // Envia o clone solto na memória. O html2pdf cuida de injetar num iframe e bater a foto.
   html2pdf().set(opt).from(clone).save().then(() => {
-    document.body.removeChild(clone);
-    window.scrollTo(0, originalScrollY);
+    console.log("PDF Gerado com sucesso usando Worker Sandboxed.");
   });
 }
