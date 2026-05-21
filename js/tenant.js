@@ -201,12 +201,14 @@ const Tenant = {
     overlay.style.minHeight = '100vh';
     overlay.style.backgroundColor = '#e5e7eb';
     overlay.style.zIndex = '999999';
-    overlay.style.display = 'flex';
-    overlay.style.justifyContent = 'center';
-    overlay.style.padding = '20px';
+    overlay.style.display = 'block'; // Não usar flex para evitar deslocamento X
+    overlay.style.padding = '0';
     
-    // Cria o container do PDF com largura exata
+    // Cria o container do PDF com largura exata e alinhado na origem
     const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.left = '0';
     container.style.width = '800px';
     container.style.maxWidth = '800px';
     container.style.backgroundColor = 'white';
@@ -242,7 +244,7 @@ const Tenant = {
       margin:       [20, 20, 20, 20],
       filename:     'Contrato_Locacao.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, logging: false, useCORS: true, scrollY: 0 },
+      html2canvas:  { scale: 2, logging: false, useCORS: true, scrollY: 0, scrollX: 0 },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'td', 'h1', 'h2', 'ul', 'p'] }
     };
