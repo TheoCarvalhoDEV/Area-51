@@ -63,7 +63,7 @@ const Tenant = {
           </div>
           
           <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1.2rem; font-size: 1.1rem; justify-content: center;" onclick="Tenant.finish()">
-            Gerar Contrato (PDF)
+            Salvar e Enviar para o Locador
           </button>
         </div>
       </div>
@@ -79,18 +79,28 @@ const Tenant = {
     let html = '<h3 style="margin-bottom: 1.5rem; color: var(--text-light); text-align:center; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">Seus Dados Pessoais</h3>';
     
     tenantFields.forEach(f => {
+      let inputHtml = '';
+      if (f.type === 'textarea') {
+        inputHtml = `<textarea class="form-textarea" data-field="${f.name}"></textarea>`;
+      } else if (f.type === 'select') {
+        inputHtml = `<select class="form-input" data-field="${f.name}">`;
+        f.options.forEach(opt => {
+          inputHtml += `<option value="${opt.value}">${opt.label}</option>`;
+        });
+        inputHtml += `</select>`;
+      } else {
+        inputHtml = `<input type="${f.type}" class="form-input" data-field="${f.name}" ${f.mask ? `data-mask="${f.mask}"` : ''}>`;
+      }
+
       html += `<div class="form-group">
         <label class="form-label">${f.label}</label>
-        ${f.type === 'textarea' 
-          ? `<textarea class="form-textarea" data-field="${f.name}"></textarea>`
-          : `<input type="${f.type}" class="form-input" data-field="${f.name}" ${f.mask ? `data-mask="${f.mask}"` : ''}>`
-        }
+        ${inputHtml}
       </div>`;
     });
     
     container.innerHTML = html;
 
-    container.querySelectorAll('input, textarea').forEach(el => {
+    container.querySelectorAll('input, textarea, select').forEach(el => {
       const mask = el.getAttribute('data-mask');
       if (mask) Utils.applyMask(el, mask);
       
