@@ -196,8 +196,9 @@ const Tenant = {
     
     // Fix layout bugs by appending to DOM temporarily with fixed width
     clone.style.position = 'absolute';
-    clone.style.left = '-9999px';
+    clone.style.left = '0';
     clone.style.top = '0';
+    clone.style.zIndex = '-9999';
     clone.style.width = '800px';
     clone.style.maxWidth = '800px';
     clone.style.padding = '20px';
@@ -215,8 +216,6 @@ const Tenant = {
       el.style.color = 'black';
     });
     
-    document.body.appendChild(clone);
-
     const opt = {
       margin:       [15, 15, 15, 15],
       filename:     'Contrato_Locacao.pdf',
@@ -227,7 +226,6 @@ const Tenant = {
     };
 
     html2pdf().set(opt).from(clone).save().then(() => {
-      document.body.removeChild(clone);
       alert('Seu Contrato foi baixado com sucesso!');
     });
   }

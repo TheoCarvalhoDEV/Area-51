@@ -11,8 +11,9 @@ function generatePDF() {
   
   // Fix layout bugs by appending to DOM temporarily with fixed width
   clone.style.position = 'absolute';
-  clone.style.left = '-9999px';
+  clone.style.left = '0';
   clone.style.top = '0';
+  clone.style.zIndex = '-9999';
   clone.style.width = '800px';
   clone.style.maxWidth = '800px';
   clone.style.padding = '20px';
@@ -26,8 +27,6 @@ function generatePDF() {
     el.style.borderBottom = 'none';
   });
   
-  document.body.appendChild(clone);
-
   const opt = {
     margin:       [15, 15, 15, 15],
     filename:     (document.getElementById('contract-name').value || 'Contrato') + '.pdf',
@@ -37,7 +36,5 @@ function generatePDF() {
     pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'td', 'h1', 'h2', 'ul'] }
   };
 
-  html2pdf().set(opt).from(clone).save().then(() => {
-    document.body.removeChild(clone);
-  });
+  html2pdf().set(opt).from(clone).save();
 }
