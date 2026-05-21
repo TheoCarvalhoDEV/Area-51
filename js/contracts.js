@@ -10,7 +10,7 @@ const ContractsView = {
           if (!val) return '---';
           if (val.match(/^\d{4}-\d{2}-\d{2}$/)) {
              const parts = val.split('-');
-             return \`\${parts[2]}/\${parts[1]}/\${parts[0]}\`;
+             return `${parts[2]}/${parts[1]}/${parts[0]}`;
           }
           return val;
        };
