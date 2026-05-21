@@ -87,8 +87,9 @@ const Editor = {
 
     let html = '';
     for (const [secName, fields] of Object.entries(sections)) {
-      // Ocultar a seção Locatário para o Admin, pois o link fará isso
-      const isHidden = secName.toLowerCase() === 'locatário';
+      // Ocultar as seções que vêm do AdminProfile ou que vão para o Inquilino
+      const hiddenSections = ['locatário', 'locador', 'conta p/ pagamento'];
+      const isHidden = hiddenSections.includes(secName.toLowerCase());
       
       html += `
         <div class="form-section" style="${isHidden ? 'display: none;' : ''}">
@@ -116,6 +117,9 @@ const Editor = {
     if (sections['Locatário']) {
       html += `
         <div class="form-section">
+          <div style="padding: 1rem; text-align: center; color: var(--success); border: 1px dashed var(--success); border-radius: 8px; margin-bottom: 1rem;">
+            <p style="margin:0;"><strong>✓ Seus dados e da sua Conta Bancária foram carregados automaticamente.</strong></p>
+          </div>
           <div style="padding: 1rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 8px;">
             <p>A seção <strong>Locatário</strong> está oculta.</p>
             <p style="font-size: 0.9em; margin-top: 5px;">Clique em "Gerar Link p/ Inquilino" para que ele mesmo preencha estes dados.</p>
@@ -156,7 +160,7 @@ const Editor = {
       Storage.update(this.contract.id, this.contract);
     } else {
       this.contract = Storage.create(this.contract);
-      window.location.hash = \`#editor?id=\${this.contract.id}\`;
+      window.location.hash = `#editor?id=${this.contract.id}`;
     }
     if(showAlert) alert('Contrato salvo com sucesso!');
   },
@@ -179,9 +183,9 @@ const Editor = {
     const url = window.location.origin + window.location.pathname + '#tenant?data=' + b64;
     
     navigator.clipboard.writeText(url).then(() => {
-      alert('Link copiado para a área de transferência!\\n\\nEnvie este link no WhatsApp do Inquilino para ele preencher.');
+      alert('Link copiado para a área de transferência!\n\nEnvie este link no WhatsApp do Inquilino para ele preencher.');
     }).catch(err => {
-      alert('Não foi possível copiar o link automaticamente. Copie a URL abaixo:\\n\\n' + url);
+      alert('Não foi possível copiar o link automaticamente. Copie a URL abaixo:\n\n' + url);
     });
   }
 };

@@ -33,7 +33,7 @@ const Tenant = {
     container.innerHTML = `
       <div class="tenant-container animate-fade-in-up">
         <div class="tenant-header">
-          <h2>${this.contract.fields.empresa_nome || 'Formulário de Locação'}</h2>
+          <h2>Contrato de Locação</h2>
           <p>Preencha seus dados pessoais abaixo para finalizar o contrato.</p>
         </div>
         

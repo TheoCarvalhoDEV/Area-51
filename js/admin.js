@@ -20,23 +20,6 @@ const Admin = {
         </div>
 
         <div class="glass" style="padding: 2rem; border-radius: 12px;">
-          <!-- Seção Timbre -->
-          <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Papel Timbrado (Cabeçalho do PDF)</h3>
-          <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem;">
-            <div class="form-group">
-              <label class="form-label">Nome da Empresa / Escritório</label>
-              <input type="text" class="form-input" id="admin_empresa_nome" value="${profile.empresa_nome || ''}" placeholder="Ex: ASSIS ADVOCACIA">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Endereço da Empresa</label>
-              <input type="text" class="form-input" id="admin_empresa_end" value="${profile.empresa_end || ''}">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Telefone / E-mail</label>
-              <input type="text" class="form-input" id="admin_empresa_contato" value="${profile.empresa_contato || ''}">
-            </div>
-          </div>
-
           <!-- Seção Pessoal -->
           <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Dados Pessoais (Locador)</h3>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
@@ -94,9 +77,6 @@ const Admin = {
 
   save() {
     const profile = {
-      empresa_nome: document.getElementById('admin_empresa_nome').value,
-      empresa_end: document.getElementById('admin_empresa_end').value,
-      empresa_contato: document.getElementById('admin_empresa_contato').value,
       nome_locador: document.getElementById('admin_nome_locador').value,
       nac_locador: document.getElementById('admin_nac_locador').value,
       est_civil_locador: document.getElementById('admin_est_civil_locador').value,

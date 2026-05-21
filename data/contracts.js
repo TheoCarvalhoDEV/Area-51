@@ -1,118 +1,12 @@
 const Contracts = {
-  prestacao_servicos: {
-    id: 'prestacao_servicos',
-    title: 'Prestação de Serviços',
-    description: 'Contrato padrão para prestação de serviços diversos.',
-    icon: 'briefcase',
-    color: 'purple',
-    category: 'Geral',
-    fields: [
-      { section: 'Contratante', name: 'nome_contratante', label: 'Nome / Razão Social', type: 'text' },
-      { section: 'Contratante', name: 'doc_contratante', label: 'CPF / CNPJ', type: 'text', mask: 'cpfcnpj' },
-      { section: 'Contratante', name: 'end_contratante', label: 'Endereço Completo', type: 'text' },
-      { section: 'Contratado', name: 'nome_contratado', label: 'Nome / Razão Social', type: 'text' },
-      { section: 'Contratado', name: 'doc_contratado', label: 'CPF / CNPJ', type: 'text', mask: 'cpfcnpj' },
-      { section: 'Contratado', name: 'end_contratado', label: 'Endereço Completo', type: 'text' },
-      { section: 'Serviço', name: 'desc_servico', label: 'Descrição do Serviço', type: 'textarea' },
-      { section: 'Serviço', name: 'valor_servico', label: 'Valor (R$)', type: 'text', mask: 'currency' },
-      { section: 'Serviço', name: 'forma_pagamento', label: 'Forma de Pagamento', type: 'text' },
-      { section: 'Serviço', name: 'prazo', label: 'Prazo (dias)', type: 'number' },
-      { section: 'Data e Local', name: 'cidade', label: 'Cidade', type: 'text' },
-      { section: 'Data e Local', name: 'data', label: 'Data', type: 'date' }
-    ],
-    template: `
-      <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
-      
-      <p>Pelo presente instrumento particular, de um lado <strong><span class="highlight" data-field="nome_contratante">___</span></strong>, inscrito(a) no CPF/CNPJ sob o nº <strong><span class="highlight" data-field="doc_contratante">___</span></strong>, residente e domiciliado(a) em <strong><span class="highlight" data-field="end_contratante">___</span></strong>, doravante denominado(a) <strong>CONTRATANTE</strong>, e de outro lado <strong><span class="highlight" data-field="nome_contratado">___</span></strong>, inscrito(a) no CPF/CNPJ sob o nº <strong><span class="highlight" data-field="doc_contratado">___</span></strong>, residente e domiciliado(a) em <strong><span class="highlight" data-field="end_contratado">___</span></strong>, doravante denominado(a) <strong>CONTRATADO(A)</strong>, celebram o presente contrato, mediante as seguintes cláusulas:</p>
-
-      <h2>Cláusula 1ª - Do Objeto</h2>
-      <p>O(A) CONTRATADO(A) compromete-se a prestar os seguintes serviços: <span class="highlight" data-field="desc_servico">___</span>.</p>
-
-      <h2>Cláusula 2ª - Do Preço e Condições de Pagamento</h2>
-      <p>Pelos serviços prestados, o(a) CONTRATANTE pagará ao(à) CONTRATADO(A) o valor de <strong><span class="highlight" data-field="valor_servico">___</span></strong>, a ser pago da seguinte forma: <span class="highlight" data-field="forma_pagamento">___</span>.</p>
-
-      <h2>Cláusula 3ª - Do Prazo</h2>
-      <p>Os serviços descritos na Cláusula 1ª deverão ser concluídos no prazo de <strong><span class="highlight" data-field="prazo">___</span></strong> dias contados da assinatura deste contrato.</p>
-
-      <h2>Cláusula 4ª - Do Foro</h2>
-      <p>As partes elegem o foro da Comarca de <span class="highlight" data-field="cidade">___</span> para dirimir quaisquer dúvidas oriundas deste contrato.</p>
-
-      <p style="text-align: right; margin-top: 40px;">
-        <span class="highlight" data-field="cidade">___</span>, <span class="highlight" data-field="data">___</span>.
-      </p>
-
-      <div class="signatures">
-        <div class="signature-block">
-          <div class="signature-line">
-            <span class="highlight" data-field="nome_contratante">___</span><br>CONTRATANTE
-          </div>
-        </div>
-        <div class="signature-block">
-          <div class="signature-line">
-            <span class="highlight" data-field="nome_contratado">___</span><br>CONTRATADO(A)
-          </div>
-        </div>
-      </div>
-    `
-  },
-  nda: {
-    id: 'nda',
-    title: 'Acordo de Confidencialidade (NDA)',
-    description: 'Protege informações sigilosas compartilhadas entre partes.',
-    icon: 'lock',
-    color: 'teal',
-    category: 'Geral',
-    fields: [
-      { section: 'Parte Reveladora', name: 'nome_reveladora', label: 'Nome / Razão Social', type: 'text' },
-      { section: 'Parte Reveladora', name: 'doc_reveladora', label: 'CPF / CNPJ', type: 'text', mask: 'cpfcnpj' },
-      { section: 'Parte Receptora', name: 'nome_receptora', label: 'Nome / Razão Social', type: 'text' },
-      { section: 'Parte Receptora', name: 'doc_receptora', label: 'CPF / CNPJ', type: 'text', mask: 'cpfcnpj' },
-      { section: 'Objeto', name: 'motivo', label: 'Motivo do Compartilhamento', type: 'text' },
-      { section: 'Data e Local', name: 'cidade', label: 'Cidade', type: 'text' },
-      { section: 'Data e Local', name: 'data', label: 'Data', type: 'date' }
-    ],
-    template: `
-      <h1>ACORDO DE CONFIDENCIALIDADE (NDA)</h1>
-      
-      <p>De um lado <strong><span class="highlight" data-field="nome_reveladora">___</span></strong>, inscrito(a) no CPF/CNPJ sob o nº <strong><span class="highlight" data-field="doc_reveladora">___</span></strong>, doravante denominado(a) <strong>PARTE REVELADORA</strong>, e de outro lado <strong><span class="highlight" data-field="nome_receptora">___</span></strong>, inscrito(a) no CPF/CNPJ sob o nº <strong><span class="highlight" data-field="doc_receptora">___</span></strong>, doravante denominado(a) <strong>PARTE RECEPTORA</strong>.</p>
-
-      <h2>Cláusula 1ª - Do Objeto</h2>
-      <p>A PARTE REVELADORA disponibilizará informações confidenciais à PARTE RECEPTORA com a finalidade exclusiva de: <span class="highlight" data-field="motivo">___</span>.</p>
-
-      <h2>Cláusula 2ª - Da Confidencialidade</h2>
-      <p>A PARTE RECEPTORA obriga-se a manter o mais absoluto sigilo sobre quaisquer informações confidenciais recebidas, não podendo utilizá-las para fins diversos dos previstos neste acordo, nem as repassar a terceiros sem autorização prévia e por escrito da PARTE REVELADORA.</p>
-
-      <p style="text-align: right; margin-top: 40px;">
-        <span class="highlight" data-field="cidade">___</span>, <span class="highlight" data-field="data">___</span>.
-      </p>
-
-      <div class="signatures">
-        <div class="signature-block">
-          <div class="signature-line">
-            <span class="highlight" data-field="nome_reveladora">___</span><br>PARTE REVELADORA
-          </div>
-        </div>
-        <div class="signature-block">
-          <div class="signature-line">
-            <span class="highlight" data-field="nome_receptora">___</span><br>PARTE RECEPTORA
-          </div>
-        </div>
-      </div>
-    `
-  },
   locacao_residencial: {
     id: 'locacao_residencial',
     title: 'Locação de Imóvel (Modelo Gláucia)',
-    description: 'Contrato de locação idêntico ao modelo personalizado enviado, com opção de Papel Timbrado.',
+    description: 'Contrato de locação idêntico ao modelo personalizado enviado, incluindo Termo de Vistoria.',
     icon: 'home',
     color: 'teal',
     category: 'Imobiliário',
-    fields: [
-      { section: 'Timbre (Cabeçalho)', name: 'empresa_nome', label: 'Nome da Empresa / Escritório', type: 'text' },
-      { section: 'Timbre (Cabeçalho)', name: 'empresa_end', label: 'Endereço da Empresa', type: 'text' },
-      { section: 'Timbre (Cabeçalho)', name: 'empresa_contato', label: 'Telefone / E-mail', type: 'text' },
-
-      { section: 'Locador', name: 'nome_locador', label: 'Nome do Locador', type: 'text' },
+    fields: [      { section: 'Locador', name: 'nome_locador', label: 'Nome do Locador', type: 'text' },
       { section: 'Locador', name: 'nac_locador', label: 'Nacionalidade', type: 'text' },
       { section: 'Locador', name: 'est_civil_locador', label: 'Estado Civil', type: 'text' },
       { section: 'Locador', name: 'rg_locador', label: 'RG (com Órgão Emissor)', type: 'text' },
@@ -150,13 +44,7 @@ const Contracts = {
       { section: 'Data e Local', name: 'foro_cidade', label: 'Cidade do Foro / Data', type: 'text' },
       { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura (Ex: 01 de junho de 2018)', type: 'text' }
     ],
-    template: `
-      <div class="timbre-header" style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #d4af37; padding-bottom: 15px;">
-        <h2 style="margin: 0; font-family: 'Playfair Display', serif; font-size: 16pt; color: #111;"><span class="highlight" data-field="empresa_nome">___</span></h2>
-        <p style="margin: 5px 0 0; font-size: 10pt; color: #555;"><span class="highlight" data-field="empresa_end">___</span> | <span class="highlight" data-field="empresa_contato">___</span></p>
-      </div>
-
-      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">CONTRATO DE LOCAÇÃO DE IMÓVEL</h1>
+    template: `      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">CONTRATO DE LOCAÇÃO DE IMÓVEL</h1>
       
       <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>LOCADOR:</strong> <span class="highlight" data-field="nome_locador">___</span>, <span class="highlight" data-field="nac_locador">___</span>, <span class="highlight" data-field="est_civil_locador">___</span>, RG <span class="highlight" data-field="rg_locador">___</span> e CPF <span class="highlight" data-field="doc_locador">___</span>.</p>
       
@@ -251,12 +139,6 @@ const Contracts = {
 
       <!-- PAGE BREAK PARA A VISTORIA -->
       <div style="page-break-before: always; margin-top: 50px;"></div>
-
-      <div class="timbre-header" style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #d4af37; padding-bottom: 15px;">
-        <h2 style="margin: 0; font-family: 'Playfair Display', serif; font-size: 16pt; color: #111;"><span class="highlight" data-field="empresa_nome">___</span></h2>
-        <p style="margin: 5px 0 0; font-size: 10pt; color: #555;"><span class="highlight" data-field="empresa_end">___</span> | <span class="highlight" data-field="empresa_contato">___</span></p>
-      </div>
-
       <h1 style="text-align: center; font-size: 14pt; margin-bottom: 2rem;">TERMO DE VISTORIA DE IMÓVEL RESIDENCIAL</h1>
       
       <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>LOCADOR:</strong> <span class="highlight" data-field="nome_locador">___</span>, <span class="highlight" data-field="nac_locador">___</span>, <span class="highlight" data-field="est_civil_locador">___</span>, RG <span class="highlight" data-field="rg_locador">___</span> e CPF <span class="highlight" data-field="doc_locador">___</span>.</p>
