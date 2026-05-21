@@ -122,6 +122,8 @@ const Editor = {
       `;
       
       fields.forEach(f => {
+        if (f.hidden) return;
+        
         const val = this.contract.fields[f.name] || '';
         
         let inputHtml = '';

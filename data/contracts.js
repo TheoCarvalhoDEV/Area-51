@@ -77,7 +77,7 @@ const Contracts = {
       ]},
 
       { section: 'Data e Local', name: 'foro_cidade', label: 'Cidade do Foro / Data', type: 'text' },
-      { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura (Automático)', type: 'text', readonly: true }
+      { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura', type: 'text', readonly: true, hidden: true }
     ],
     template: `      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">CONTRATO DE LOCAÇÃO DE IMÓVEL</h1>
       

@@ -79,6 +79,8 @@ const Tenant = {
     let html = '<h3 style="margin-bottom: 1.5rem; color: var(--text-light); text-align:center; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">Seus Dados Pessoais</h3>';
     
     tenantFields.forEach(f => {
+      if (f.hidden) return;
+      
       let inputHtml = '';
       if (f.type === 'textarea') {
         inputHtml = `<textarea class="form-textarea" data-field="${f.name}"></textarea>`;
