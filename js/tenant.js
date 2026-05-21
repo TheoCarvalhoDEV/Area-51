@@ -93,8 +93,31 @@ const Tenant = {
       if (mask) Utils.applyMask(el, mask);
       
       el.addEventListener('input', () => {
-        this.contract.fields[el.getAttribute('data-field')] = el.value;
+        const fieldName = el.getAttribute('data-field');
+        this.contract.fields[fieldName] = el.value;
+        this.updatePreview();
       });
+    });
+    
+    // Atualizar preview logo no início com os dados já preenchidos pelo locador
+    this.updatePreview();
+  },
+
+  updatePreview() {
+    const prev = document.getElementById('preview-content');
+    if (!prev) return;
+    
+    prev.querySelectorAll('.highlight').forEach(el => {
+      const field = el.getAttribute('data-field');
+      let val = this.contract.fields[field];
+      
+      // Formatar datas do padrão ISO (YYYY-MM-DD) para Brasileiro (DD/MM/YYYY)
+      if (val && val.match(/^\d{4}-\d{2}-\d{2}$/)) {
+         const parts = val.split('-');
+         val = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      
+      el.textContent = val ? val : '___';
     });
   },
 
