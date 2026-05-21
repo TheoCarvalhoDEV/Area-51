@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Contratos</title>
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/templates.css">
+  <link rel="stylesheet" href="css/editor.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/tenant.css">
+
+  <!-- Scripts Externos -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+
+  <!-- Lógica da Aplicação -->
+  <script src="js/utils.js" defer></script>
+  <script src="js/storage.js" defer></script>
+  <script src="data/contracts.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+  <script src="js/templates.js" defer></script>
+  <script src="js/admin.js" defer></script>
+  <script src="js/tenant.js" defer></script>
+  <script src="js/editor.js" defer></script>
+  <script src="js/pdf.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+
+  <!-- Mobile Header -->
+  <header class="mobile-header">
+    <div class="sidebar-logo">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+    </div>
+    <div class="sidebar-title">Contratos</div>
+    <button class="btn-icon" style="margin-left:auto;" onclick="document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    </button>
+  </header>
+  <div id="mobile-overlay" class="mobile-overlay" onclick="document.getElementById('sidebar').classList.remove('open'); this.classList.remove('active')"></div>
+
+  <div id="app">
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        </div>
+        <div>
+          <div class="sidebar-title">Gerador Doc</div>
+          <div class="sidebar-subtitle">Versão Simples 1.0</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Principal</div>
+          <a href="#dashboard" class="nav-item active">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="#templates" class="nav-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+            <span class="nav-label">Modelos</span>
+          </a>
+        </div>
+        <div class="nav-section" style="margin-top: 2rem;">
+          <div class="nav-section-title">Configurações</div>
+          <a href="#admin" class="nav-item">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span class="nav-label">Meu Perfil (Locador)</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- O conteúdo será injetado aqui via JS -->
+    </main>
+  </div>
+</body>
+</html>

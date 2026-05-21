@@ -1,0 +1,77 @@
+/* css/tenant.css */
+body.tenant-mode {
+  background: var(--bg-dark);
+  color: var(--text-light);
+  font-family: var(--font-ui);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+body.tenant-mode #sidebar,
+body.tenant-mode .mobile-header {
+  display: none !important;
+}
+
+body.tenant-mode #main-content {
+  margin: 0 !important;
+  padding: 1rem !important;
+  width: 100%;
+  max-width: 600px;
+}
+
+.tenant-container {
+  width: 100%;
+}
+
+.tenant-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-top: 1rem;
+}
+
+.tenant-header h2 {
+  font-size: 1.5rem;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+  font-family: 'Playfair Display', serif;
+}
+
+.tenant-header p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.tenant-card {
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+.tenant-summary {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.tenant-card .form-group {
+  margin-bottom: 1.2rem;
+}
+
+.tenant-card .form-label {
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.tenant-card .form-input,
+.tenant-card .form-textarea {
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+}
