@@ -192,28 +192,33 @@ const Tenant = {
     const element = document.getElementById('preview-content');
     if (!element) return;
     
-    const clone = element.cloneNode(true);
+    // Salvar estado original para reverter depois
+    const originalPadding = element.style.padding;
+    const originalBoxShadow = element.style.boxShadow;
     
-    // Fix layout bugs by appending to DOM temporarily with fixed width
-    clone.style.position = 'absolute';
-    clone.style.left = '0';
-    clone.style.top = '0';
-    clone.style.zIndex = '-9999';
-    clone.style.width = '800px';
-    clone.style.maxWidth = '800px';
-    clone.style.padding = '20px';
-    clone.style.boxShadow = 'none';
-    clone.style.border = 'none';
-    clone.style.background = 'white';
+    // Remover os estilos que simulam uma "folha de papel" na tela
+    element.style.padding = '0';
+    element.style.boxShadow = 'none';
     
-    // Fill the hidden preview with all data
-    clone.querySelectorAll('.highlight').forEach(el => {
+    // Salvar e modificar os highlights
+    const originalHighlights = [];
+    element.querySelectorAll('.highlight').forEach(el => {
       const field = el.getAttribute('data-field');
       const val = this.contract.fields[field];
+      
+      originalHighlights.push({
+        el: el,
+        text: el.textContent,
+        bg: el.style.backgroundColor,
+        color: el.style.color,
+        borderBottom: el.style.borderBottom
+      });
+      
       el.textContent = val ? val : '___';
       if(val) el.style.borderBottom = 'none';
       else el.style.borderBottom = '1px solid black'; // PDF looks better with solid black line than dashed blue
       el.style.color = 'black';
+      el.style.backgroundColor = 'transparent';
     });
     
     const opt = {
@@ -225,7 +230,19 @@ const Tenant = {
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'td', 'h1', 'h2', 'ul'] }
     };
 
-    html2pdf().set(opt).from(clone).save().then(() => {
+    html2pdf().set(opt).from(element).save().then(() => {
+      // Reverter estilos do container
+      element.style.padding = originalPadding;
+      element.style.boxShadow = originalBoxShadow;
+      
+      // Reverter highlights
+      originalHighlights.forEach(orig => {
+        orig.el.textContent = orig.text;
+        orig.el.style.backgroundColor = orig.bg;
+        orig.el.style.color = orig.color;
+        orig.el.style.borderBottom = orig.borderBottom;
+      });
+      
       alert('Seu Contrato foi baixado com sucesso!');
     });
   }
