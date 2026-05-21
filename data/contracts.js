@@ -191,62 +191,67 @@ const Contracts = {
       <div style="page-break-before: always; margin-top: 50px;"></div>
       <h1 style="text-align: center; font-size: 14pt; margin-bottom: 2rem;">TERMO DE VISTORIA DE IMÓVEL RESIDENCIAL</h1>
       
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>LOCADOR:</strong> <span class="highlight" data-field="nome_locador">___</span>, <span class="highlight" data-field="nac_locador">___</span>, <span class="highlight" data-field="est_civil_locador">___</span>, RG <span class="highlight" data-field="rg_locador">___</span> e CPF <span class="highlight" data-field="doc_locador">___</span>.</p>
-      
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>LOCATÁRIO:</strong> <span class="highlight" data-field="nome_locatario">___</span>, <span class="highlight" data-field="nac_locatario">___</span>, <span class="highlight" data-field="est_civil_locatario">___</span>, <span class="highlight" data-field="prof_locatario">___</span>, RG <span class="highlight" data-field="rg_locatario">___</span> e CPF <span class="highlight" data-field="doc_locatario">___</span>.</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>LOCADOR:</strong> <span class="highlight" data-field="nome_locador">___</span>, <span class="highlight" data-field="nac_locador">___</span>, <span class="highlight" data-field="est_civil_locador">___</span>, RG <span class="highlight" data-field="rg_locador">___</span> e CPF <span class="highlight" data-field="doc_locador">___</span>.</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>LOCATÁRIO:</strong> <span class="highlight" data-field="nome_locatario">___</span>, <span class="highlight" data-field="nac_locatario">___</span>, <span class="highlight" data-field="est_civil_locatario">___</span>, <span class="highlight" data-field="prof_locatario">___</span>, RG <span class="highlight" data-field="rg_locatario">___</span> e CPF <span class="highlight" data-field="doc_locatario">___</span>.</td>
+        </tr>
+      </table>
       
       <p style="text-align: justify; margin-bottom: 1.5rem;"><strong>IMÓVEL PARA VISTORIA:</strong><br>
       <span class="highlight" data-field="end_imovel">___</span>, CEP <span class="highlight" data-field="cep_imovel">___</span>.</p>
       
-      <h2 style="text-align: center; font-size: 12pt; margin-top: 2rem; margin-bottom: 1rem;">LAUDO DE VISTORIA</h2>
+      <h2 style="text-align: center; font-size: 12pt; margin-top: 1rem; margin-bottom: 1rem;">LAUDO DE VISTORIA</h2>
 
-      <p><strong>SALA</strong></p>
-      <ul style="margin-left: 40px; margin-bottom: 1rem;">
-        <li>01 - Porta em Madeira 0,80x2,10m</li>
-        <li>01 - Janela em Vidro Temperado 1,0x1,20m</li>
-        <li>01 - Lâmpada Fluorescente</li>
-      </ul>
+      <p style="margin-bottom: 0.2rem;">SALA</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Porta em Madeira 0,80x2,10m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Janela em Vidro Temperado 1,0x1,20m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Lâmpada Fluorescente</td></tr>
+      </table>
 
-      <p><strong>COZINHA</strong></p>
-      <ul style="margin-left: 40px; margin-bottom: 1rem;">
-        <li>01 - Porta Vidro Temperado de correr</li>
-        <li>01 - Janela em Vidro Temperado cor Fumê 1,0x1,20m</li>
-        <li>01 - Lâmpada Fluorescente</li>
-        <li>01 - Armário em MDF com Bancada de Granito (projeto anexo)</li>
-      </ul>
+      <p style="margin-bottom: 0.2rem;">COZINHA</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Porta Vidro Temperado de correr</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Janela em Vidro Temperado cor Fumê 1,0x1,20m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Lâmpada Fluorescente</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Armário em MDF com Bancada de Granito (projeto anexo)</td></tr>
+      </table>
 
-      <p><strong>SUÍTE</strong></p>
-      <ul style="margin-left: 40px; margin-bottom: 1rem;">
-        <li>01 - Porta em Madeira 0,80x2,10m</li>
-        <li>01 - Janela em Vidro Temperado cor Fumê 1,0x1,20m</li>
-        <li>01 - Lâmpada Fluorescente</li>
-      </ul>
+      <p style="margin-bottom: 0.2rem;">SUÍTE</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Porta em Madeira 0,80x2,10m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Janela em Vidro Temperado cor Fumê 1,0x1,20m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Lâmpada Fluorescente</td></tr>
+      </table>
 
-      <p><strong>SUÍTE - BANHEIRO</strong></p>
-      <ul style="margin-left: 40px; margin-bottom: 1rem;">
-        <li>01 - Porta em Madeira 0,80x2,10m</li>
-        <li>01 - Box de Vidro Temperado cor Incolor</li>
-        <li>01 - Chuveiro</li>
-        <li>01 - Pia de Granito com Cuba</li>
-        <li>01 - Bacia/Vaso com Caixa Acoplada</li>
-        <li>01 - Ducha higiênica</li>
-      </ul>
+      <p style="margin-bottom: 0.2rem;">SUÍTE - BANHEIRO</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Porta em Madeira 0,80x2,10m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Box de Vidro Temperado cor Incolor</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Chuveiro</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Pia de Granito com Cuba</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Bacia/Vaso com Caixa Acoplada</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Ducha higiênica</td></tr>
+      </table>
 
-      <p><strong>QUARTO</strong></p>
-      <ul style="margin-left: 40px; margin-bottom: 1rem;">
-        <li>01 - Porta em Madeira 0,80x2,10m</li>
-        <li>01 - Janela em Vidro Temperado cor Fumê 1,0x1,20m</li>
-      </ul>
+      <p style="margin-bottom: 0.2rem;">QUARTO</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Porta em Madeira 0,80x2,10m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Janela em Vidro Temperado cor Fumê 1,0x1,20m</td></tr>
+      </table>
 
-      <p><strong>BANHEIRO SOCIAL</strong></p>
-      <ul style="margin-left: 40px; margin-bottom: 2rem;">
-        <li>01 - Porta em Madeira 0,80x2,10m</li>
-        <li>01 - Box de Vidro Temperado cor Incolor</li>
-        <li>01 - Chuveiro</li>
-        <li>01 - Pia de Granito com Cuba</li>
-        <li>01 - Bacia/Vaso com Caixa Acoplada</li>
-        <li>01 - Ducha higiênica</li>
-      </ul>
+      <p style="margin-bottom: 0.2rem;">BANHEIRO SOCIAL</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Porta em Madeira 0,80x2,10m</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Box de Vidro Temperado cor Incolor</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Chuveiro</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Pia de Granito com Cuba</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Bacia/Vaso com Caixa Acoplada</td></tr>
+        <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Ducha higiênica</td></tr>
+      </table>
     `
   }
 };
