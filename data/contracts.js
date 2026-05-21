@@ -25,9 +25,16 @@ const Contracts = {
       { section: 'Imóvel', name: 'mat_agua', label: 'Matrícula de Água', type: 'text' },
       { section: 'Imóvel', name: 'uc_energia', label: 'Unidade Consumidora (Energia)', type: 'text' },
 
-      { section: 'Condições', name: 'prazo_extenso', label: 'Prazo (Ex: 01 (um) ano)', type: 'text' },
-      { section: 'Condições', name: 'data_inicio', label: 'Data de Início (Ex: 01/06/2018)', type: 'text' },
-      { section: 'Condições', name: 'data_termino', label: 'Data de Término (Ex: 31/05/2019)', type: 'text' },
+      { section: 'Condições', name: 'prazo_extenso', label: 'Prazo do Contrato', type: 'select', options: [
+        {value: '', label: 'Selecione o prazo...'},
+        {value: '06 (seis) meses', label: '06 (seis) meses'},
+        {value: '12 (doze) meses (1 ano)', label: '12 (doze) meses (1 ano)'},
+        {value: '24 (vinte e quatro) meses (2 anos)', label: '24 (vinte e quatro) meses (2 anos)'},
+        {value: '30 (trinta) meses (2 anos e meio)', label: '30 (trinta) meses (2 anos e meio)'},
+        {value: '36 (trinta e seis) meses (3 anos)', label: '36 (trinta e seis) meses (3 anos)'}
+      ]},
+      { section: 'Condições', name: 'data_inicio', label: 'Data de Início', type: 'date' },
+      { section: 'Condições', name: 'data_termino', label: 'Data de Término (Automático)', type: 'date', readonly: true },
       { section: 'Condições', name: 'dia_vencimento', label: 'Dia de Vencimento', type: 'number' },
       
       { section: 'Valores', name: 'valor_aluguel', label: 'Valor Mensal (Ex: R$ 940,45)', type: 'text' },
@@ -42,7 +49,7 @@ const Contracts = {
       { section: 'Conta p/ Pagamento', name: 'tipo_conta', label: 'Tipo de Conta (Ex: Conta Poupança)', type: 'text' },
 
       { section: 'Data e Local', name: 'foro_cidade', label: 'Cidade do Foro / Data', type: 'text' },
-      { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura (Ex: 01 de junho de 2018)', type: 'text' }
+      { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura (Automático)', type: 'text', readonly: true }
     ],
     template: `      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">CONTRATO DE LOCAÇÃO DE IMÓVEL</h1>
       

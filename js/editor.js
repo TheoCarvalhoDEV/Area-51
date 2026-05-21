@@ -28,6 +28,15 @@ const Editor = {
           this.contract.fields[k] = profile[k];
         });
       }
+      
+      // Auto-preencher Data da Assinatura com a data de hoje por extenso
+      const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+      const hoje = new Date();
+      const diaExtenso = String(hoje.getDate()).padStart(2, '0');
+      const mesExtenso = meses[hoje.getMonth()];
+      const anoExtenso = hoje.getFullYear();
+      this.contract.fields['data_assinatura'] = `${diaExtenso} de ${mesExtenso} de ${anoExtenso}`;
+      
     } else if (param.startsWith('id=')) {
       const cId = param.split('=')[1];
       this.contract = Storage.getById(cId);
@@ -106,12 +115,27 @@ const Editor = {
       
       fields.forEach(f => {
         const val = this.contract.fields[f.name] || '';
+        
+        let inputHtml = '';
+        const disabledAttr = this.contract.isFinalized ? 'disabled' : '';
+        const readOnlyAttr = f.readonly ? 'readonly style="background-color: var(--bg);"' : '';
+        
+        if (f.type === 'textarea') {
+          inputHtml = `<textarea class="form-textarea" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>${val}</textarea>`;
+        } else if (f.type === 'select') {
+          inputHtml = `<select class="form-input" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>`;
+          f.options.forEach(opt => {
+            const isSelected = val === opt.value ? 'selected' : '';
+            inputHtml += `<option value="${opt.value}" ${isSelected}>${opt.label}</option>`;
+          });
+          inputHtml += `</select>`;
+        } else {
+          inputHtml = `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${val}" ${f.mask ? `data-mask="${f.mask}"` : ''} ${disabledAttr} ${readOnlyAttr}>`;
+        }
+        
         html += `<div class="form-group">
           <label class="form-label">${f.label}</label>
-          ${f.type === 'textarea' 
-            ? `<textarea class="form-textarea" data-field="${f.name}" ${this.contract.isFinalized ? 'disabled' : ''}>${val}</textarea>`
-            : `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${val}" ${f.mask ? `data-mask="${f.mask}"` : ''} ${this.contract.isFinalized ? 'disabled' : ''}>`
-          }
+          ${inputHtml}
         </div>`;
       });
       
@@ -144,14 +168,40 @@ const Editor = {
     container.innerHTML = html;
 
     // Attach listeners
-    container.querySelectorAll('input, textarea').forEach(el => {
+    container.querySelectorAll('input, textarea, select').forEach(el => {
       // Masks
       const mask = el.getAttribute('data-mask');
       if (mask) Utils.applyMask(el, mask);
       
       // Live Preview
       el.addEventListener('input', () => {
-        this.contract.fields[el.getAttribute('data-field')] = el.value;
+        const fieldName = el.getAttribute('data-field');
+        this.contract.fields[fieldName] = el.value;
+        
+        // Auto-calcular Data de Término
+        if (fieldName === 'data_inicio' || fieldName === 'prazo_extenso') {
+          const inicio = this.contract.fields['data_inicio'];
+          const prazo = this.contract.fields['prazo_extenso'];
+          
+          if (inicio && prazo) {
+            let meses = parseInt(prazo.split(' ')[0], 10);
+            if (!isNaN(meses) && meses > 0) {
+              const d = new Date(inicio + 'T12:00:00Z');
+              d.setMonth(d.getMonth() + meses);
+              d.setDate(d.getDate() - 1); // Ex: Começa 01/06/2020, termina 31/05/2021
+              
+              const ano = d.getUTCFullYear();
+              const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+              const dia = String(d.getUTCDate()).padStart(2, '0');
+              const termino = `${ano}-${mes}-${dia}`;
+              
+              this.contract.fields['data_termino'] = termino;
+              const termEl = container.querySelector('[data-field="data_termino"]');
+              if (termEl) termEl.value = termino;
+            }
+          }
+        }
+        
         this.updatePreview();
       });
     });
@@ -161,7 +211,14 @@ const Editor = {
     const prev = document.getElementById('preview-content');
     prev.querySelectorAll('.highlight').forEach(el => {
       const field = el.getAttribute('data-field');
-      const val = this.contract.fields[field];
+      let val = this.contract.fields[field];
+      
+      // Formatar datas do padrão ISO (YYYY-MM-DD) para Brasileiro (DD/MM/YYYY)
+      if (val && val.match(/^\d{4}-\d{2}-\d{2}$/)) {
+         const parts = val.split('-');
+         val = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      
       el.textContent = val ? val : '___';
       if(val) el.style.borderBottom = 'none';
       else el.style.borderBottom = '2px dashed var(--primary)';
