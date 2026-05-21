@@ -9,10 +9,16 @@ function generatePDF() {
   // Salvar estado original para reverter depois
   const originalPadding = element.style.padding;
   const originalBoxShadow = element.style.boxShadow;
+  const originalWidth = element.style.width;
+  const originalMaxWidth = element.style.maxWidth;
+  const originalMargin = element.style.margin;
   
-  // Remover os estilos que simulam uma "folha de papel" na tela
+  // Remover estilos da tela e fixar largura em 800px para o PDF ficar bem enquadrado
   element.style.padding = '0';
   element.style.boxShadow = 'none';
+  element.style.width = '800px';
+  element.style.maxWidth = '800px';
+  element.style.margin = '0 auto';
   
   // Salvar e modificar os highlights
   const originalHighlights = [];
@@ -41,6 +47,9 @@ function generatePDF() {
     // Reverter estilos do container
     element.style.padding = originalPadding;
     element.style.boxShadow = originalBoxShadow;
+    element.style.width = originalWidth;
+    element.style.maxWidth = originalMaxWidth;
+    element.style.margin = originalMargin;
     
     // Reverter highlights
     originalHighlights.forEach(orig => {
