@@ -53,21 +53,36 @@ const Contracts = {
     ],
     template: `      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">CONTRATO DE LOCAÇÃO DE IMÓVEL</h1>
       
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>LOCADOR:</strong> <span class="highlight" data-field="nome_locador">___</span>, <span class="highlight" data-field="nac_locador">___</span>, <span class="highlight" data-field="est_civil_locador">___</span>, RG <span class="highlight" data-field="rg_locador">___</span> e CPF <span class="highlight" data-field="doc_locador">___</span>.</p>
-      
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>LOCATÁRIO:</strong> <span class="highlight" data-field="nome_locatario">___</span>, <span class="highlight" data-field="nac_locatario">___</span>, <span class="highlight" data-field="est_civil_locatario">___</span>, <span class="highlight" data-field="prof_locatario">___</span>, RG <span class="highlight" data-field="rg_locatario">___</span> e CPF <span class="highlight" data-field="doc_locatario">___</span>.</p>
-      
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>IMÓVEL:</strong> <span class="highlight" data-field="desc_imovel">___</span>, situado na <span class="highlight" data-field="end_imovel">___</span>, CEP <span class="highlight" data-field="cep_imovel">___</span>.</p>
-      
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>PRAZO:</strong> <span class="highlight" data-field="prazo_extenso">___</span> &nbsp;&nbsp;&nbsp; <strong>INÍCIO:</strong> <span class="highlight" data-field="data_inicio">___</span> &nbsp;&nbsp;&nbsp; <strong>TÉRMINO:</strong> <span class="highlight" data-field="data_termino">___</span></p>
-      
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>VENCIMENTO:</strong> PAGAMENTO ANTECIPADO até o dia <span class="highlight" data-field="dia_vencimento">___</span> de cada mês.</p>
-      
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>VALOR:</strong> <span class="highlight" data-field="valor_aluguel">___</span> (<span class="highlight" data-field="valor_extenso">___</span>).</p>
-      
-      <p style="text-align: justify; margin-bottom: 0.5rem;"><strong>BÔNUS ADIMPLÊNCIA/PONTUALIDADE:</strong> <span class="highlight" data-field="valor_bonus">___</span> (<span class="highlight" data-field="valor_bonus_extenso">___</span>)</p>
-      
-      <p style="text-align: justify; margin-bottom: 1.5rem;"><strong>REAJUSTE:</strong> Anual, conforme a variação acumulada do <span class="highlight" data-field="indice_reajuste">___</span>.</p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>LOCADOR:</strong> <span class="highlight" data-field="nome_locador">___</span>, <span class="highlight" data-field="nac_locador">___</span>, <span class="highlight" data-field="est_civil_locador">___</span>, RG <span class="highlight" data-field="rg_locador">___</span> e CPF <span class="highlight" data-field="doc_locador">___</span>.</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>LOCATÁRIO:</strong> <span class="highlight" data-field="nome_locatario">___</span>, <span class="highlight" data-field="nac_locatario">___</span>, <span class="highlight" data-field="est_civil_locatario">___</span>, <span class="highlight" data-field="prof_locatario">___</span>, RG <span class="highlight" data-field="rg_locatario">___</span> e CPF <span class="highlight" data-field="doc_locatario">___</span>.</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>IMÓVEL:</strong> <span class="highlight" data-field="desc_imovel">___</span>, situado na <span class="highlight" data-field="end_imovel">___</span>, CEP <span class="highlight" data-field="cep_imovel">___</span>.</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;">
+            <strong>PRAZO:</strong> <span class="highlight" data-field="prazo_extenso">___</span> &nbsp;&nbsp;&nbsp; 
+            <strong>INÍCIO:</strong> <span class="highlight" data-field="data_inicio">___</span> &nbsp;&nbsp;&nbsp; 
+            <strong>TÉRMINO:</strong> <span class="highlight" data-field="data_termino">___</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>VENCIMENTO:</strong> PAGAMENTO ANTECIPADO até o dia <span class="highlight" data-field="dia_vencimento">___</span> de cada mês.</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>VALOR:</strong> <span class="highlight" data-field="valor_aluguel">___</span> (<span class="highlight" data-field="valor_extenso">___</span>).</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>BÔNUS ADIMPLÊNCIA/PONTUALIDADE:</strong> <span class="highlight" data-field="valor_bonus">___</span> (<span class="highlight" data-field="valor_bonus_extenso">___</span>).</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid black; padding: 8px;"><strong>REAJUSTE:</strong> Anual, conforme a variação acumulada do <span class="highlight" data-field="indice_reajuste">___</span>.</td>
+        </tr>
+      </table>
       
       <p style="text-align: justify; margin-bottom: 1rem;">O LOCADOR e a LOCATÁRIA resolvem ajustar a locação do imóvel retro descrito, que ora contratam, sob as cláusulas e condições seguintes:</p>
 

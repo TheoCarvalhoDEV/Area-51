@@ -54,7 +54,7 @@ const Tenant = {
         
         <!-- Hidden Preview for PDF Generation -->
         <div id="preview-wrapper" style="position: absolute; left: -9999px; top: 0;">
-          <div id="preview-content" class="preview-document" style="padding: 40px; background: white; color: black; font-family: 'Playfair Display', serif;">
+          <div id="preview-content" class="preview-document" style="padding: 40px; background: white; color: black; font-family: Arial, Helvetica, sans-serif;">
             ${this.template.template}
           </div>
         </div>
