@@ -45,18 +45,24 @@ const Tenant = {
             <strong style="color:var(--primary); font-size:1.1rem;">${this.contract.fields.valor_aluguel || 'A Combinar'} / mês</strong>
           </div>
           
-          <div id="tenant-form-container"></div>
+          <div class="tenant-layout animate-fade-in-up">
+            
+            <div class="tenant-preview-panel glass">
+              <div class="preview-header" style="background: var(--bg); padding: 1rem; border-bottom: 1px solid var(--border); font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
+                <span>📄 Leia o Contrato Abaixo</span>
+              </div>
+              <div id="preview-content" class="preview-document" style="padding: 2rem; background: white; color: black; font-family: Arial, Helvetica, sans-serif; max-height: 50vh; overflow-y: auto; border-radius: 0 0 8px 8px; border: 1px solid var(--border-light);">
+                ${this.template.template}
+              </div>
+            </div>
+
+            <div class="tenant-form-panel glass" id="tenant-form-container" style="margin-top: 2rem;"></div>
+
+          </div>
           
           <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1.2rem; font-size: 1.1rem; justify-content: center;" onclick="Tenant.finish()">
             Gerar Contrato (PDF)
           </button>
-        </div>
-        
-        <!-- Hidden Preview for PDF Generation -->
-        <div id="preview-wrapper" style="position: absolute; left: -9999px; top: 0;">
-          <div id="preview-content" class="preview-document" style="padding: 40px; background: white; color: black; font-family: Arial, Helvetica, sans-serif;">
-            ${this.template.template}
-          </div>
         </div>
       </div>
     `;
