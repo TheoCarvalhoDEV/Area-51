@@ -8,6 +8,7 @@ const App = {
     '#': 'dashboard',
     '#dashboard': 'dashboard',
     '#templates': 'templates',
+    '#contracts': 'contracts',
     '#editor': 'editor',
     '#admin': 'admin',
     '#tenant': 'tenant'
@@ -63,6 +64,7 @@ const App = {
     
     if (route === 'dashboard') Dashboard.render(this.container);
     else if (route === 'templates') Templates.render(this.container);
+    else if (route === 'contracts') ContractsView.render(this.container);
     else if (route === 'editor') Editor.render(this.container, param);
     else if (route === 'admin') Admin.render(this.container);
     else if (route === 'tenant') Tenant.render(this.container, param);
