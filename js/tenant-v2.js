@@ -192,21 +192,33 @@ const Tenant = {
     const element = document.getElementById('preview-content');
     if (!element) return;
 
-    // Criar um novo elemento isolado para garantir que não herde nenhum CSS de layout que corta a página
-    const container = document.createElement('div');
-    container.innerHTML = element.innerHTML;
+    // Criar clone fiel para isolar de barras de rolagem mas mantendo o CSS da página
+    const clone = element.cloneNode(true);
     
-    // Aplicar estilos base para A4
-    container.style.width = '800px';
-    container.style.padding = '20px';
-    container.style.background = 'white';
-    container.style.color = 'black';
-    container.style.fontFamily = 'Arial, Helvetica, sans-serif';
-    container.style.fontSize = '11pt';
-    container.style.lineHeight = '1.5';
+    // Limpar bordas e sombras para não ficar parecendo "papel sobre papel"
+    clone.style.border = 'none';
+    clone.style.boxShadow = 'none';
+    clone.style.padding = '0'; // A margem será aplicada apenas no PDF (opt.margin)
+    clone.style.margin = '0';
+    clone.style.background = 'white';
+    
+    // Forçar dimensões corretas para a foto A4 e posicionar na tela visível
+    clone.style.width = '800px';
+    clone.style.maxWidth = '800px';
+    clone.style.position = 'absolute';
+    clone.style.top = '0';
+    clone.style.left = '0';
+    clone.style.zIndex = '999999';
+    
+    // Herdar explicitamente fontes para não ficar "feio" ou com Times New Roman
+    const computedStyle = window.getComputedStyle(element);
+    clone.style.fontFamily = computedStyle.fontFamily || 'Arial, Helvetica, sans-serif';
+    clone.style.fontSize = computedStyle.fontSize || '11pt';
+    clone.style.lineHeight = computedStyle.lineHeight || '1.5';
+    clone.style.color = 'black';
 
     // Processar highlights para impressão (remover fundo colorido)
-    container.querySelectorAll('.highlight').forEach(el => {
+    clone.querySelectorAll('.highlight').forEach(el => {
       const field = el.getAttribute('data-field');
       const val = this.contract.fields[field];
       
@@ -217,16 +229,25 @@ const Tenant = {
       el.style.backgroundColor = 'transparent';
     });
 
-    // Opções do html2pdf limpas. Sem regras complexas de pagebreak que causam bugs e cortes.
+    // OBRIGATÓRIO: Anexar ao body para que o html2canvas possa ver o elemento real com seus estilos
+    document.body.appendChild(clone);
+    
+    // Rolar para o topo para que o html2canvas não capture a tela cortada
+    const originalScrollY = window.scrollY;
+    window.scrollTo(0, 0);
+
     const opt = {
       margin:       15,
       filename:     'Contrato_Locacao.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
+      html2canvas:  { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(container).save().then(() => {
+    html2pdf().set(opt).from(clone).save().then(() => {
+      // Limpar o clone da tela após a foto
+      document.body.removeChild(clone);
+      window.scrollTo(0, originalScrollY);
       alert('Seu Contrato foi baixado com sucesso!');
     });
   }
