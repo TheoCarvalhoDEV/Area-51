@@ -62,6 +62,16 @@ const App = {
 
     this.updateNav(route);
     
+    // Close sidebar on mobile after navigation
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-overlay');
+    if (sidebar && sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+    }
+    if (overlay && overlay.classList.contains('active')) {
+      overlay.classList.remove('active');
+    }
+    
     if (route === 'dashboard') Dashboard.render(this.container);
     else if (route === 'templates') Templates.render(this.container);
     else if (route === 'contracts') ContractsView.render(this.container);
