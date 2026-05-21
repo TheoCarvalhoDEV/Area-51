@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    GERADOR DE CONTRATOS — Premium Experience
    ═══════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* Colors - Premium Light Mode with Navy Accents */
@@ -29,7 +29,7 @@
 
   /* Typography */
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-serif: 'Playfair Display', serif;
+  --font-serif: var(--font-sans); /* Fallback for elements that were using serif */
   
   /* Metrics */
   --radius-sm: 6px;
