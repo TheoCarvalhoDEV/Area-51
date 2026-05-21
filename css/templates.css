@@ -1,0 +1,94 @@
+/* ═══ Template Selection Styles (Premium Style) ═══ */
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+}
+
+.template-card {
+  padding: 2rem;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(180deg, var(--card-bg) 0%, rgba(10,10,12,0.5) 100%);
+}
+
+.template-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow var(--transition);
+  pointer-events: none;
+}
+
+.template-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-5px);
+}
+
+.template-card:hover::before {
+  box-shadow: inset 0 0 0 1px var(--primary), 0 0 20px rgba(212, 175, 55, 0.1);
+}
+
+.template-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+.template-card-icon::before {
+  content:''; position:absolute; top:0;left:0;right:0;bottom:0;
+  border-radius: inherit; opacity: 0.1;
+}
+
+.template-card-icon svg { width: 24px; height: 24px; position:relative; z-index:1; }
+.template-card-icon.purple { color: #d4af37; }
+.template-card-icon.purple::before { background-color: #d4af37; }
+.template-card-icon.teal { color: #f3f4f6; }
+.template-card-icon.teal::before { background-color: #f3f4f6; }
+
+.template-card h3 {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 0.75rem;
+}
+
+.template-card p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  flex-grow: 1;
+}
+
+.template-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.template-card-arrow {
+  color: var(--text-light);
+  transition: transform var(--transition), color var(--transition);
+}
+
+.template-card-arrow svg { width: 20px; height: 20px; }
+
+.template-card:hover .template-card-arrow {
+  color: var(--primary);
+  transform: translateX(6px);
+}
