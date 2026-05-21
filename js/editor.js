@@ -37,9 +37,12 @@ const Editor = {
       window.location.hash = '#dashboard'; return;
     }
 
+    const isReadOnly = this.contract.isFinalized;
+
     container.innerHTML = `
       <div class="editor-toolbar animate-fade-in-down">
-        <input type="text" id="contract-name" class="form-input editor-toolbar-title" style="width: auto; max-width: 400px; background: transparent; border-color: transparent;" value="${this.contract.name}">
+        <input type="text" id="contract-name" class="form-input editor-toolbar-title" style="width: auto; max-width: 400px; background: transparent; border-color: transparent;" value="${this.contract.name}" ${isReadOnly ? 'disabled' : ''}>
+        ${!isReadOnly ? `
         <button class="btn btn-secondary" onclick="Editor.save(true)">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
           Salvar
@@ -48,6 +51,7 @@ const Editor = {
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
           Gerar Link p/ Inquilino
         </button>
+        ` : ''}
         <button class="btn btn-primary" onclick="generatePDF()">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
           PDF
@@ -105,8 +109,8 @@ const Editor = {
         html += `<div class="form-group">
           <label class="form-label">${f.label}</label>
           ${f.type === 'textarea' 
-            ? `<textarea class="form-textarea" data-field="${f.name}">${val}</textarea>`
-            : `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${val}" ${f.mask ? `data-mask="${f.mask}"` : ''}>`
+            ? `<textarea class="form-textarea" data-field="${f.name}" ${this.contract.isFinalized ? 'disabled' : ''}>${val}</textarea>`
+            : `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${val}" ${f.mask ? `data-mask="${f.mask}"` : ''} ${this.contract.isFinalized ? 'disabled' : ''}>`
           }
         </div>`;
       });
@@ -114,7 +118,7 @@ const Editor = {
       html += `</div></div>`;
     }
     
-    if (sections['Locatário']) {
+    if (sections['Locatário'] && !this.contract.isFinalized) {
       html += `
         <div class="form-section">
           <div style="padding: 1rem; text-align: center; color: var(--success); border: 1px dashed var(--success); border-radius: 8px; margin-bottom: 1rem;">
@@ -126,6 +130,15 @@ const Editor = {
           </div>
         </div>
       `;
+    }
+
+    if (this.contract.isFinalized) {
+      html = `
+        <div style="padding: 1.5rem; text-align: center; background: rgba(37, 211, 102, 0.1); color: #25D366; border: 1px solid #25D366; border-radius: 8px; margin-bottom: 2rem;">
+          <h3 style="margin-bottom: 0.5rem; font-family: 'Playfair Display', serif;">Contrato Finalizado</h3>
+          <p style="margin: 0; font-size: 0.95rem;">Os dados foram preenchidos pelo inquilino e estão bloqueados para edição.<br>Você já pode exportar o PDF definitivo.</p>
+        </div>
+      ` + html;
     }
 
     container.innerHTML = html;
