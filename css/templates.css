@@ -13,8 +13,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  background: linear-gradient(180deg, var(--card-bg) 0%, rgba(10,10,12,0.5) 100%);
+  border-top: 1px solid rgba(0,0,0,0.05);
+  background: linear-gradient(180deg, var(--card-bg) 0%, rgba(248, 249, 250, 0.8) 100%);
 }
 
 .template-card::before {
@@ -33,7 +33,7 @@
 }
 
 .template-card:hover::before {
-  box-shadow: inset 0 0 0 1px var(--primary), 0 0 20px rgba(212, 175, 55, 0.1);
+  box-shadow: inset 0 0 0 1px var(--primary), 0 0 20px rgba(0, 61, 122, 0.1);
 }
 
 .template-card-icon {
@@ -52,16 +52,16 @@
 }
 
 .template-card-icon svg { width: 24px; height: 24px; position:relative; z-index:1; }
-.template-card-icon.purple { color: #d4af37; }
-.template-card-icon.purple::before { background-color: #d4af37; }
-.template-card-icon.teal { color: #f3f4f6; }
-.template-card-icon.teal::before { background-color: #f3f4f6; }
+.template-card-icon.purple { color: var(--primary); }
+.template-card-icon.purple::before { background-color: var(--primary); }
+.template-card-icon.teal { color: var(--text-main); }
+.template-card-icon.teal::before { background-color: var(--text-muted); }
 
 .template-card h3 {
   font-family: var(--font-serif);
   font-size: 1.35rem;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-main);
   margin-bottom: 0.75rem;
 }
 
@@ -78,7 +78,7 @@
   justify-content: space-between;
   margin-top: 2rem;
   padding-top: 1.25rem;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(0,0,0,0.05);
 }
 
 .template-card-arrow {

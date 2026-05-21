@@ -1,8 +1,8 @@
 /* css/tenant.css */
 body.tenant-mode {
-  background: var(--bg-dark);
-  color: var(--text-light);
-  font-family: var(--font-ui);
+  background: var(--surface-bg);
+  color: var(--text-main);
+  font-family: var(--font-sans);
   margin: 0;
   padding: 0;
   display: flex;
@@ -51,8 +51,8 @@ body.tenant-mode #main-content {
 }
 
 .tenant-summary {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.02);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 2rem;

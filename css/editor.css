@@ -12,7 +12,7 @@
   align-items: center;
   gap: 1.5rem;
   margin-bottom: 2rem;
-  background: rgba(20, 20, 23, 0.7);
+  background: rgba(248, 249, 250, 0.7);
   backdrop-filter: blur(10px);
   padding: 1.25rem 2rem;
   border: 1px solid var(--border-light);
@@ -31,12 +31,12 @@
   padding: 0.5rem 0.75rem !important;
   width: 100%;
   max-width: 500px;
-  color: #fff;
+  color: var(--text-main);
   transition: background var(--transition);
 }
 .editor-toolbar-title:hover, .editor-toolbar-title:focus {
-  background: rgba(255,255,255,0.05) !important;
-  border-color: rgba(212, 175, 55, 0.3) !important;
+  background: rgba(0,0,0,0.05) !important;
+  border-color: rgba(0, 61, 122, 0.3) !important;
 }
 
 /* Form Panel */
@@ -49,7 +49,7 @@
 }
 
 .form-section {
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 .form-section:last-child {
   border-bottom: none;
@@ -67,13 +67,13 @@
 }
 
 .form-section-header:hover {
-  background: rgba(255,255,255,0.02);
+  background: rgba(0,0,0,0.02);
 }
 
 .form-section-header h3 {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-main);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -95,8 +95,8 @@
 
 .form-section-body {
   padding: 1.5rem;
-  background: rgba(0,0,0,0.2);
-  border-top: 1px solid rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.02);
+  border-top: 1px solid rgba(0,0,0,0.05);
 }
 
 /* Preview Panel */
@@ -128,7 +128,7 @@
   font-family: "Times New Roman", Times, serif;
   font-size: 12pt;
   line-height: 1.6;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.1);
   position: relative;
 }
 .preview-document::before {
@@ -160,11 +160,11 @@
 }
 
 .preview-document .highlight {
-  background: rgba(212, 175, 55, 0.15);
+  background: rgba(0, 61, 122, 0.15);
   padding: 0 0.25rem;
   color: #000;
   font-weight: bold;
-  border-bottom: 1px dashed #d4af37;
+  border-bottom: 1px dashed var(--primary);
   transition: background 0.3s;
 }
 

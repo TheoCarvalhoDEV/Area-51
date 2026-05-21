@@ -4,21 +4,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
 :root {
-  /* Colors - Premium Dark Mode with Gold Accents */
-  --primary: #d4af37; /* Metallic Gold */
-  --primary-hover: #b5952f;
-  --primary-light: rgba(212, 175, 55, 0.1);
+  /* Colors - Premium Light Mode with Navy Accents */
+  --primary: #003D7A; /* Navy Blue */
+  --primary-hover: #0050A0;
+  --primary-light: rgba(0, 61, 122, 0.08);
   
-  --surface-bg: #0a0a0c; /* Deep obsidian */
-  --card-bg: #141417; /* Elevated card */
-  --sidebar-bg: rgba(10, 10, 12, 0.8); /* Glassmorphism sidebar */
+  --surface-bg: #F0F2F5; /* Off-white background */
+  --card-bg: #FFFFFF; /* Pure white card */
+  --sidebar-bg: rgba(248, 249, 250, 0.95); /* Light gray sidebar */
   
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
-  --text-light: #6b7280;
+  --text-main: #1E293B; /* Dark slate */
+  --text-muted: #515151; /* Medium gray */
+  --text-light: #94A3B8; /* Light gray */
   
-  --border-light: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(212, 175, 55, 0.5);
+  --border-light: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(0, 61, 122, 0.5);
   
   --success: #10b981;
   --success-bg: rgba(16, 185, 129, 0.1);
@@ -37,10 +37,10 @@
   --radius-lg: 20px;
   --radius-full: 9999px;
   
-  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 30px rgba(212, 175, 55, 0.15);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 15px rgba(0, 61, 122, 0.15);
   
   --transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --sidebar-width: 280px;
@@ -64,7 +64,7 @@ body {
   color: var(--text-main);
   line-height: 1.6;
   min-height: 100vh;
-  background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(0, 61, 122, 0.05) 0%, transparent 50%);
   background-repeat: no-repeat;
 }
 
@@ -138,7 +138,7 @@ a:hover {
   font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--text-main);
-  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #001f3f 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
