@@ -192,33 +192,28 @@ const Tenant = {
     const element = document.getElementById('preview-content');
     if (!element) return;
 
-    // Salvar estado original
-    const originalPadding = element.style.padding;
-    const originalBoxShadow = element.style.boxShadow;
-    const originalWidth = element.style.width;
-    const originalMaxWidth = element.style.maxWidth;
-    const originalMargin = element.style.margin;
+    const originalScrollY = window.scrollY;
+    window.scrollTo(0, 0);
+
+    // Clone o elemento para isolar de qualquer "overflow: hidden" ou "auto" dos pais
+    const clone = element.cloneNode(true);
     
-    // Forçar largura de 800px sem overlay (direto no DOM)
-    element.style.padding = '0';
-    element.style.boxShadow = 'none';
-    element.style.width = '800px';
-    element.style.maxWidth = '800px';
-    element.style.margin = '0'; // Garante alinhamento à esquerda
-    
-    // Salvar e modificar os highlights
-    const originalHighlights = [];
-    element.querySelectorAll('.highlight').forEach(el => {
+    // Posiciona o clone no topo esquerdo do body
+    clone.style.position = 'absolute';
+    clone.style.top = '0';
+    clone.style.left = '0';
+    clone.style.width = '800px';
+    clone.style.maxWidth = '800px';
+    clone.style.margin = '0';
+    clone.style.padding = '0';
+    clone.style.boxShadow = 'none';
+    clone.style.zIndex = '999999';
+    clone.style.backgroundColor = 'white';
+
+    // Limpa os highlights no clone e injeta os valores reais do Tenant
+    clone.querySelectorAll('.highlight').forEach(el => {
       const field = el.getAttribute('data-field');
       const val = this.contract.fields[field];
-      
-      originalHighlights.push({
-        el: el,
-        text: el.textContent,
-        bg: el.style.backgroundColor,
-        color: el.style.color,
-        borderBottom: el.style.borderBottom
-      });
       
       el.textContent = val ? val : '___';
       if(val) el.style.borderBottom = 'none';
@@ -226,9 +221,8 @@ const Tenant = {
       el.style.color = 'black';
       el.style.backgroundColor = 'transparent';
     });
-    
-    const originalScrollY = window.scrollY;
-    window.scrollTo(0, 0);
+
+    document.body.appendChild(clone);
 
     const opt = {
       margin:       [20, 20, 20, 20],
@@ -239,22 +233,8 @@ const Tenant = {
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'td', 'h1', 'h2', 'ul', 'p'] }
     };
 
-    html2pdf().set(opt).from(element).save().then(() => {
-      // Reverter estilos do container
-      element.style.padding = originalPadding;
-      element.style.boxShadow = originalBoxShadow;
-      element.style.width = originalWidth;
-      element.style.maxWidth = originalMaxWidth;
-      element.style.margin = originalMargin;
-      
-      // Reverter highlights
-      originalHighlights.forEach(orig => {
-        orig.el.textContent = orig.text;
-        orig.el.style.backgroundColor = orig.bg;
-        orig.el.style.color = orig.color;
-        orig.el.style.borderBottom = orig.borderBottom;
-      });
-      
+    html2pdf().set(opt).from(clone).save().then(() => {
+      document.body.removeChild(clone);
       window.scrollTo(0, originalScrollY);
       alert('Seu Contrato foi baixado com sucesso!');
     });
