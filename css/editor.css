@@ -275,3 +275,46 @@
     padding: 1.5rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Regras de Impressão Nativa (PDF)
+   ═══════════════════════════════════════════════════════ */
+@media print {
+  /* Esconder tudo que não é o contrato */
+  #sidebar,
+  .mobile-header,
+  .editor-form-panel,
+  .editor-toolbar,
+  .fab-preview,
+  .preview-header,
+  .close-preview-btn {
+    display: none !important;
+  }
+
+  /* Resetar o layout para o papel */
+  body, #main-content, .editor-layout, .editor-preview-panel {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+  }
+
+  /* O documento preenche toda a folha sem bordas */
+  .preview-document {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Remover os "espaços preenchíveis" amarelos na impressão */
+  .highlight {
+    background-color: transparent !important;
+    color: black !important;
+    border-bottom: none !important;
+  }
+}
