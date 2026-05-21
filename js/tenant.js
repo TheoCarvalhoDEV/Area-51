@@ -189,10 +189,19 @@ const Tenant = {
   },
 
   downloadPDF() {
-    const prev = document.getElementById('preview-content');
+    const element = document.getElementById('preview-content');
+    if (!element) return;
+    
+    const clone = element.cloneNode(true);
+    
+    // Remover os estilos que simulam uma "folha de papel" na tela
+    clone.style.padding = '0';
+    clone.style.boxShadow = 'none';
+    clone.style.border = 'none';
+    clone.style.background = 'white';
     
     // Fill the hidden preview with all data
-    prev.querySelectorAll('.highlight').forEach(el => {
+    clone.querySelectorAll('.highlight').forEach(el => {
       const field = el.getAttribute('data-field');
       const val = this.contract.fields[field];
       el.textContent = val ? val : '___';
@@ -209,7 +218,7 @@ const Tenant = {
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(prev).save().then(() => {
+    html2pdf().set(opt).from(clone).save().then(() => {
       alert('Seu Contrato foi baixado com sucesso!');
     });
   }

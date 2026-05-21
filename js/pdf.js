@@ -8,6 +8,13 @@ function generatePDF() {
 
   // Cleanup highlights for PDF
   const clone = element.cloneNode(true);
+  
+  // Remover os estilos que simulam uma "folha de papel" na tela
+  clone.style.padding = '0';
+  clone.style.boxShadow = 'none';
+  clone.style.border = 'none';
+  clone.style.background = 'white';
+  
   clone.querySelectorAll('.highlight').forEach(el => {
     el.style.backgroundColor = 'transparent';
     el.style.color = '#000';
