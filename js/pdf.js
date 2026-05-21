@@ -9,8 +9,13 @@ function generatePDF() {
   // Cleanup highlights for PDF
   const clone = element.cloneNode(true);
   
-  // Remover os estilos que simulam uma "folha de papel" na tela
-  clone.style.padding = '0';
+  // Fix layout bugs by appending to DOM temporarily with fixed width
+  clone.style.position = 'absolute';
+  clone.style.left = '-9999px';
+  clone.style.top = '0';
+  clone.style.width = '800px';
+  clone.style.maxWidth = '800px';
+  clone.style.padding = '20px';
   clone.style.boxShadow = 'none';
   clone.style.border = 'none';
   clone.style.background = 'white';
@@ -20,14 +25,19 @@ function generatePDF() {
     el.style.color = '#000';
     el.style.borderBottom = 'none';
   });
+  
+  document.body.appendChild(clone);
 
   const opt = {
-    margin:       [20, 20, 20, 20],
+    margin:       [15, 15, 15, 15],
     filename:     (document.getElementById('contract-name').value || 'Contrato') + '.pdf',
     image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, logging: false },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    html2canvas:  { scale: 2, logging: false, useCORS: true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', 'td', 'h1', 'h2', 'ul'] }
   };
 
-  html2pdf().set(opt).from(clone).save();
+  html2pdf().set(opt).from(clone).save().then(() => {
+    document.body.removeChild(clone);
+  });
 }
