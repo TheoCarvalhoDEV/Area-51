@@ -69,15 +69,23 @@ const Editor = {
 
       <div class="editor-layout animate-fade-in-up">
         <div class="editor-form-panel glass" id="form-container"></div>
-        <div class="editor-preview-panel glass">
+        <div class="editor-preview-panel glass" id="preview-panel">
           <div class="preview-header">
             <span>Visualização do Documento</span>
+            <button class="btn-icon close-preview-btn" onclick="document.getElementById('preview-panel').classList.remove('active')" title="Fechar Visualização">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
           </div>
           <div class="preview-document" id="preview-content">
             ${this.template.template}
           </div>
         </div>
       </div>
+
+      <button class="fab-preview" onclick="document.getElementById('preview-panel').classList.add('active')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+        Ver Contrato
+      </button>
     `;
 
     this.renderForm();

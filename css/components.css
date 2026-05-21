@@ -241,15 +241,42 @@
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 70px;
+  height: 60px;
   background: rgba(248, 249, 250, 0.9);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-light);
   align-items: center;
-  padding: 0 1.5rem;
+  padding: 0 1.25rem;
   z-index: 50;
+}
+
+.mobile-header .sidebar-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.mobile-header .sidebar-title {
+  font-size: 1.1rem;
 }
 
 @media(max-width: 768px) {
   .mobile-header { display: flex; }
+}
+
+/* Mobile Overlay */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 55;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.mobile-overlay.active {
+  display: block;
+  opacity: 1;
 }
