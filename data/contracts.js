@@ -7,14 +7,36 @@ const Contracts = {
     color: 'teal',
     category: 'Imobiliário',
     fields: [      { section: 'Locador', name: 'nome_locador', label: 'Nome do Locador', type: 'text' },
-      { section: 'Locador', name: 'nac_locador', label: 'Nacionalidade', type: 'text' },
-      { section: 'Locador', name: 'est_civil_locador', label: 'Estado Civil', type: 'text' },
+      { section: 'Locador', name: 'nac_locador', label: 'Nacionalidade', type: 'select', options: [
+        {value: 'brasileiro(a)', label: 'Brasileiro(a)'},
+        {value: 'estrangeiro(a)', label: 'Estrangeiro(a)'}
+      ]},
+      { section: 'Locador', name: 'est_civil_locador', label: 'Estado Civil', type: 'select', options: [
+        {value: '', label: 'Selecione...'},
+        {value: 'solteiro(a)', label: 'Solteiro(a)'},
+        {value: 'casado(a)', label: 'Casado(a)'},
+        {value: 'divorciado(a)', label: 'Divorciado(a)'},
+        {value: 'viúvo(a)', label: 'Viúvo(a)'},
+        {value: 'separado(a) judicialmente', label: 'Separado(a) judicialmente'},
+        {value: 'em união estável', label: 'União Estável'}
+      ]},
       { section: 'Locador', name: 'rg_locador', label: 'RG (com Órgão Emissor)', type: 'text' },
       { section: 'Locador', name: 'doc_locador', label: 'CPF', type: 'text', mask: 'cpfcnpj' },
 
       { section: 'Locatário', name: 'nome_locatario', label: 'Nome do Locatário', type: 'text' },
-      { section: 'Locatário', name: 'nac_locatario', label: 'Nacionalidade', type: 'text' },
-      { section: 'Locatário', name: 'est_civil_locatario', label: 'Estado Civil', type: 'text' },
+      { section: 'Locatário', name: 'nac_locatario', label: 'Nacionalidade', type: 'select', options: [
+        {value: 'brasileiro(a)', label: 'Brasileiro(a)'},
+        {value: 'estrangeiro(a)', label: 'Estrangeiro(a)'}
+      ]},
+      { section: 'Locatário', name: 'est_civil_locatario', label: 'Estado Civil', type: 'select', options: [
+        {value: '', label: 'Selecione...'},
+        {value: 'solteiro(a)', label: 'Solteiro(a)'},
+        {value: 'casado(a)', label: 'Casado(a)'},
+        {value: 'divorciado(a)', label: 'Divorciado(a)'},
+        {value: 'viúvo(a)', label: 'Viúvo(a)'},
+        {value: 'separado(a) judicialmente', label: 'Separado(a) judicialmente'},
+        {value: 'em união estável', label: 'União Estável'}
+      ]},
       { section: 'Locatário', name: 'prof_locatario', label: 'Profissão', type: 'text' },
       { section: 'Locatário', name: 'rg_locatario', label: 'RG (com Órgão Emissor)', type: 'text' },
       { section: 'Locatário', name: 'doc_locatario', label: 'CPF', type: 'text', mask: 'cpfcnpj' },
@@ -46,7 +68,13 @@ const Contracts = {
       { section: 'Conta p/ Pagamento', name: 'banco', label: 'Banco (Ex: Banco do Brasil)', type: 'text' },
       { section: 'Conta p/ Pagamento', name: 'agencia', label: 'Agência', type: 'text' },
       { section: 'Conta p/ Pagamento', name: 'conta_banco', label: 'Conta (com dígito)', type: 'text' },
-      { section: 'Conta p/ Pagamento', name: 'tipo_conta', label: 'Tipo de Conta (Ex: Conta Poupança)', type: 'text' },
+      { section: 'Conta p/ Pagamento', name: 'tipo_conta', label: 'Tipo de Conta', type: 'select', options: [
+        {value: '', label: 'Selecione...'},
+        {value: 'Conta Corrente', label: 'Conta Corrente'},
+        {value: 'Conta Poupança', label: 'Conta Poupança'},
+        {value: 'Conta Salário', label: 'Conta Salário'},
+        {value: 'Conta Pagamento', label: 'Conta Pagamento'}
+      ]},
 
       { section: 'Data e Local', name: 'foro_cidade', label: 'Cidade do Foro / Data', type: 'text' },
       { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura (Automático)', type: 'text', readonly: true }
