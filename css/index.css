@@ -164,5 +164,15 @@ a:hover {
     z-index: 60;
   }
   #sidebar.open { transform: translateX(0); }
-  #main-content { margin-left: 0; width: 100%; padding: 1rem; padding-top: 5rem; }
+  #main-content { margin-left: 0; width: 100%; padding: 1.5rem 1rem; padding-top: 5rem; }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .page-title {
+    font-size: 2rem;
+  }
 }

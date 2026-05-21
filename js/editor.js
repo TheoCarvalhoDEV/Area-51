@@ -67,7 +67,7 @@ const Editor = {
         </button>
       </div>
 
-      <div class="editor-layout animate-fade-in-up">
+      <div class="editor-layout">
         <div class="editor-form-panel glass" id="form-container"></div>
         <div class="editor-preview-panel glass" id="preview-panel">
           <div class="preview-header">
