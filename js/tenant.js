@@ -137,6 +137,18 @@ const Tenant = {
     const waText = encodeURIComponent("Olá! Preenchi os meus dados no contrato. Segue o link para você importar no painel:\n\n" + importUrl);
     const waUrl = "https://wa.me/?text=" + waText;
 
+    // Se estiver testando no mesmo computador, já salva direto no dashboard (localStorage)
+    if (typeof Storage !== 'undefined') {
+      try {
+        Storage.create({
+          name: 'Contrato Finalizado - ' + (this.contract.fields.nome_locatario || 'Inquilino'),
+          templateId: this.contract.templateId,
+          fields: this.contract.fields,
+          isFinalized: true
+        });
+      } catch(e) {}
+    }
+
     const container = document.querySelector('.tenant-card');
     container.innerHTML = `
       <div style="text-align: center; padding: 1rem 0;">
