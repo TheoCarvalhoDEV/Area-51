@@ -192,62 +192,54 @@ const Tenant = {
     const element = document.getElementById('preview-content');
     if (!element) return;
 
-    // Criar clone fiel para isolar de barras de rolagem mas mantendo o CSS da página
-    const clone = element.cloneNode(true);
-    
-    // Limpar bordas e sombras para não ficar parecendo "papel sobre papel"
-    clone.style.border = 'none';
-    clone.style.boxShadow = 'none';
-    clone.style.padding = '0'; // A margem será aplicada apenas no PDF (opt.margin)
-    clone.style.margin = '0';
-    clone.style.background = 'white';
-    
-    // Forçar dimensões corretas para a foto A4 e posicionar na tela visível
-    clone.style.width = '800px';
-    clone.style.maxWidth = '800px';
-    clone.style.position = 'absolute';
-    clone.style.top = '0';
-    clone.style.left = '0';
-    clone.style.zIndex = '999999';
-    
-    // Herdar explicitamente fontes para não ficar "feio" ou com Times New Roman
-    const computedStyle = window.getComputedStyle(element);
-    clone.style.fontFamily = computedStyle.fontFamily || 'Arial, Helvetica, sans-serif';
-    clone.style.fontSize = computedStyle.fontSize || '11pt';
-    clone.style.lineHeight = computedStyle.lineHeight || '1.5';
-    clone.style.color = 'black';
+    // Criar clone fiel para isolar de barras de rolagem
+    const tempClone = element.cloneNode(true);
 
-    // Processar highlights para impressão (remover fundo colorido)
-    clone.querySelectorAll('.highlight').forEach(el => {
+    // Processar highlights para impressão ANTES de injetar no HTML isolado
+    tempClone.querySelectorAll('.highlight').forEach(el => {
       const field = el.getAttribute('data-field');
       const val = this.contract.fields[field];
-      
       el.textContent = val ? val : '___';
-      if(val) el.style.borderBottom = 'none';
-      else el.style.borderBottom = '1px solid black';
-      el.style.color = 'black';
-      el.style.backgroundColor = 'transparent';
+      if(!val) el.style.borderBottom = '1px solid black';
     });
 
-    // OBRIGATÓRIO: Anexar ao body para que o html2canvas possa ver o elemento real com seus estilos
-    document.body.appendChild(clone);
+    // Criar um novo elemento isolado (XML/HTML string)
+    const container = document.createElement('div');
     
-    // Rolar para o topo para que o html2canvas não capture a tela cortada
-    const originalScrollY = window.scrollY;
-    window.scrollTo(0, 0);
+    // Injetar os estilos exatos do editor.css dentro do HTML isolado
+    container.innerHTML = `
+      <style>
+        .preview-document {
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 11pt;
+          line-height: 1.5;
+          color: black;
+        }
+        .preview-document p { margin-bottom: 1rem; text-align: justify; }
+        .preview-document h1, .preview-document h2 { text-align: center; margin-bottom: 2rem; color: black; }
+        .preview-document ul { margin-left: 40px; margin-bottom: 1rem; }
+        .preview-document li { margin-bottom: 0.5rem; text-align: justify; }
+        .preview-document table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        .preview-document td, .preview-document th { border: 1px solid black; padding: 8px; text-align: left; }
+        .signatures { display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 2rem; }
+        .signature-block { width: 45%; text-align: center; margin-bottom: 2rem; }
+        .signature-line { border-top: 1px solid black; padding-top: 0.5rem; }
+        .highlight { background-color: transparent !important; color: black !important; }
+      </style>
+      <div class="preview-document" style="width: 800px; padding: 20px; background: white; margin: 0;">
+        ${tempClone.innerHTML}
+      </div>
+    `;
 
     const opt = {
       margin:       15,
       filename:     'Contrato_Locacao.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
+      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(clone).save().then(() => {
-      // Limpar o clone da tela após a foto
-      document.body.removeChild(clone);
-      window.scrollTo(0, originalScrollY);
+    html2pdf().set(opt).from(container).save().then(() => {
       alert('Seu Contrato foi baixado com sucesso!');
     });
   }
