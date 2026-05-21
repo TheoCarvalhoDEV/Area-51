@@ -51,8 +51,10 @@ const Tenant = {
               <div class="preview-header" style="background: var(--bg); padding: 1rem; border-bottom: 1px solid var(--border); font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
                 <span>📄 Leia o Contrato Abaixo</span>
               </div>
-              <div id="preview-content" class="preview-document" style="padding: 2rem; background: white; color: black; font-family: Arial, Helvetica, sans-serif; max-height: 50vh; overflow-y: auto; border-radius: 0 0 8px 8px; border: 1px solid var(--border-light);">
-                ${this.template.template}
+              <div style="max-height: 50vh; overflow-y: auto; border-radius: 0 0 8px 8px; border: 1px solid var(--border-light);">
+                <div id="preview-content" class="preview-document" style="padding: 2rem; background: white; color: black; font-family: Arial, Helvetica, sans-serif;">
+                  ${this.template.template}
+                </div>
               </div>
             </div>
 
