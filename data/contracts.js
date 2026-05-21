@@ -1,85 +1,99 @@
-const Contracts = {
-  locacao_residencial: {
-    id: 'locacao_residencial',
-    title: 'Locação de Imóvel (Modelo Gláucia)',
-    description: 'Contrato de locação idêntico ao modelo personalizado enviado, incluindo Termo de Vistoria.',
-    icon: 'home',
-    color: 'teal',
-    category: 'Imobiliário',
-    fields: [      { section: 'Locador', name: 'nome_locador', label: 'Nome do Locador', type: 'text' },
-      { section: 'Locador', name: 'nac_locador', label: 'Nacionalidade', type: 'select', options: [
-        {value: 'brasileiro(a)', label: 'Brasileiro(a)'},
-        {value: 'estrangeiro(a)', label: 'Estrangeiro(a)'}
-      ]},
-      { section: 'Locador', name: 'est_civil_locador', label: 'Estado Civil', type: 'select', options: [
-        {value: '', label: 'Selecione...'},
-        {value: 'solteiro(a)', label: 'Solteiro(a)'},
-        {value: 'casado(a)', label: 'Casado(a)'},
-        {value: 'divorciado(a)', label: 'Divorciado(a)'},
-        {value: 'viúvo(a)', label: 'Viúvo(a)'},
-        {value: 'separado(a) judicialmente', label: 'Separado(a) judicialmente'},
-        {value: 'em união estável', label: 'União Estável'}
-      ]},
-      { section: 'Locador', name: 'rg_locador', label: 'RG (com Órgão Emissor)', type: 'text' },
-      { section: 'Locador', name: 'doc_locador', label: 'CPF', type: 'text', mask: 'cpfcnpj' },
+const ContractsXML = `<?xml version="1.0" encoding="UTF-8"?>
+<database>
+  <contract id="locacao_residencial">
+    <meta>
+      <title>Locação de Imóvel (Modelo Gláucia)</title>
+      <description>Contrato de locação idêntico ao modelo personalizado enviado, incluindo Termo de Vistoria.</description>
+      <icon>home</icon>
+      <color>teal</color>
+      <category>Imobiliário</category>
+    </meta>
+    
+    <fields>
+      <!-- Locador -->
+      <field section="Locador" name="nome_locador" label="Nome do Locador" type="text" />
+      <field section="Locador" name="nac_locador" label="Nacionalidade" type="select">
+        <option value="brasileiro(a)">Brasileiro(a)</option>
+        <option value="estrangeiro(a)">Estrangeiro(a)</option>
+      </field>
+      <field section="Locador" name="est_civil_locador" label="Estado Civil" type="select">
+        <option value="">Selecione...</option>
+        <option value="solteiro(a)">Solteiro(a)</option>
+        <option value="casado(a)">Casado(a)</option>
+        <option value="divorciado(a)">Divorciado(a)</option>
+        <option value="viúvo(a)">Viúvo(a)</option>
+        <option value="separado(a) judicialmente">Separado(a) judicialmente</option>
+        <option value="em união estável">União Estável</option>
+      </field>
+      <field section="Locador" name="rg_locador" label="RG (com Órgão Emissor)" type="text" />
+      <field section="Locador" name="doc_locador" label="CPF" type="text" mask="cpfcnpj" />
 
-      { section: 'Locatário', name: 'nome_locatario', label: 'Nome do Locatário', type: 'text' },
-      { section: 'Locatário', name: 'nac_locatario', label: 'Nacionalidade', type: 'select', options: [
-        {value: 'brasileiro(a)', label: 'Brasileiro(a)'},
-        {value: 'estrangeiro(a)', label: 'Estrangeiro(a)'}
-      ]},
-      { section: 'Locatário', name: 'est_civil_locatario', label: 'Estado Civil', type: 'select', options: [
-        {value: '', label: 'Selecione...'},
-        {value: 'solteiro(a)', label: 'Solteiro(a)'},
-        {value: 'casado(a)', label: 'Casado(a)'},
-        {value: 'divorciado(a)', label: 'Divorciado(a)'},
-        {value: 'viúvo(a)', label: 'Viúvo(a)'},
-        {value: 'separado(a) judicialmente', label: 'Separado(a) judicialmente'},
-        {value: 'em união estável', label: 'União Estável'}
-      ]},
-      { section: 'Locatário', name: 'prof_locatario', label: 'Profissão', type: 'text' },
-      { section: 'Locatário', name: 'rg_locatario', label: 'RG (com Órgão Emissor)', type: 'text' },
-      { section: 'Locatário', name: 'doc_locatario', label: 'CPF', type: 'text', mask: 'cpfcnpj' },
+      <!-- Locatário -->
+      <field section="Locatário" name="nome_locatario" label="Nome do Locatário" type="text" />
+      <field section="Locatário" name="nac_locatario" label="Nacionalidade" type="select">
+        <option value="brasileiro(a)">Brasileiro(a)</option>
+        <option value="estrangeiro(a)">Estrangeiro(a)</option>
+      </field>
+      <field section="Locatário" name="est_civil_locatario" label="Estado Civil" type="select">
+        <option value="">Selecione...</option>
+        <option value="solteiro(a)">Solteiro(a)</option>
+        <option value="casado(a)">Casado(a)</option>
+        <option value="divorciado(a)">Divorciado(a)</option>
+        <option value="viúvo(a)">Viúvo(a)</option>
+        <option value="separado(a) judicialmente">Separado(a) judicialmente</option>
+        <option value="em união estável">União Estável</option>
+      </field>
+      <field section="Locatário" name="prof_locatario" label="Profissão" type="text" />
+      <field section="Locatário" name="rg_locatario" label="RG (com Órgão Emissor)" type="text" />
+      <field section="Locatário" name="doc_locatario" label="CPF" type="text" mask="cpfcnpj" />
 
-      { section: 'Imóvel', name: 'desc_imovel', label: 'Descrição (Ex: Urbano de uso...)', type: 'textarea' },
-      { section: 'Imóvel', name: 'end_imovel', label: 'Endereço Completo do Imóvel', type: 'textarea' },
-      { section: 'Imóvel', name: 'cep_imovel', label: 'CEP', type: 'text' },
-      { section: 'Imóvel', name: 'mat_agua', label: 'Matrícula de Água', type: 'text' },
-      { section: 'Imóvel', name: 'uc_energia', label: 'Unidade Consumidora (Energia)', type: 'text' },
+      <!-- Imóvel -->
+      <field section="Imóvel" name="desc_imovel" label="Descrição (Ex: Urbano de uso...)" type="textarea" />
+      <field section="Imóvel" name="end_imovel" label="Endereço Completo do Imóvel" type="textarea" />
+      <field section="Imóvel" name="cep_imovel" label="CEP" type="text" />
+      <field section="Imóvel" name="mat_agua" label="Matrícula de Água" type="text" />
+      <field section="Imóvel" name="uc_energia" label="Unidade Consumidora (Energia)" type="text" />
 
-      { section: 'Condições', name: 'prazo_extenso', label: 'Prazo do Contrato', type: 'select', options: [
-        {value: '', label: 'Selecione o prazo...'},
-        {value: '06 (seis) meses', label: '06 (seis) meses'},
-        {value: '12 (doze) meses (1 ano)', label: '12 (doze) meses (1 ano)'},
-        {value: '24 (vinte e quatro) meses (2 anos)', label: '24 (vinte e quatro) meses (2 anos)'},
-        {value: '30 (trinta) meses (2 anos e meio)', label: '30 (trinta) meses (2 anos e meio)'},
-        {value: '36 (trinta e seis) meses (3 anos)', label: '36 (trinta e seis) meses (3 anos)'}
-      ]},
-      { section: 'Condições', name: 'data_inicio', label: 'Data de Início', type: 'date' },
-      { section: 'Condições', name: 'data_termino', label: 'Data de Término (Automático)', type: 'date', readonly: true },
-      { section: 'Condições', name: 'dia_vencimento', label: 'Dia de Vencimento', type: 'number' },
-      
-      { section: 'Valores', name: 'valor_aluguel', label: 'Valor Mensal (Ex: R$ 940,45)', type: 'text' },
-      { section: 'Valores', name: 'valor_extenso', label: 'Valor por Extenso', type: 'text' },
-      { section: 'Valores', name: 'valor_bonus', label: 'Bônus Adimplência (Ex: R$ 40,45)', type: 'text' },
-      { section: 'Valores', name: 'valor_bonus_extenso', label: 'Bônus por Extenso', type: 'text' },
-      { section: 'Valores', name: 'indice_reajuste', label: 'Índice de Reajuste (Ex: IGP-M/FGV)', type: 'text' },
-      
-      { section: 'Conta p/ Pagamento', name: 'banco', label: 'Banco (Ex: Banco do Brasil)', type: 'text' },
-      { section: 'Conta p/ Pagamento', name: 'agencia', label: 'Agência', type: 'text' },
-      { section: 'Conta p/ Pagamento', name: 'conta_banco', label: 'Conta (com dígito)', type: 'text' },
-      { section: 'Conta p/ Pagamento', name: 'tipo_conta', label: 'Tipo de Conta', type: 'select', options: [
-        {value: '', label: 'Selecione...'},
-        {value: 'Conta Corrente', label: 'Conta Corrente'},
-        {value: 'Conta Poupança', label: 'Conta Poupança'},
-        {value: 'Conta Salário', label: 'Conta Salário'},
-        {value: 'Conta Pagamento', label: 'Conta Pagamento'}
-      ]},
+      <!-- Condições -->
+      <field section="Condições" name="prazo_extenso" label="Prazo do Contrato" type="select">
+        <option value="">Selecione o prazo...</option>
+        <option value="06 (seis) meses">06 (seis) meses</option>
+        <option value="12 (doze) meses (1 ano)">12 (doze) meses (1 ano)</option>
+        <option value="24 (vinte e quatro) meses (2 anos)">24 (vinte e quatro) meses (2 anos)</option>
+        <option value="30 (trinta) meses (2 anos e meio)">30 (trinta) meses (2 anos e meio)</option>
+        <option value="36 (trinta e seis) meses (3 anos)">36 (trinta e seis) meses (3 anos)</option>
+      </field>
+      <field section="Condições" name="data_inicio" label="Data de Início" type="date" />
+      <field section="Condições" name="data_termino" label="Data de Término (Automático)" type="date" readonly="true" />
+      <field section="Condições" name="dia_vencimento" label="Dia de Vencimento" type="number" />
 
-      { section: 'Data e Local', name: 'foro_cidade', label: 'Cidade do Foro / Data', type: 'text' },
-      { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura', type: 'text', readonly: true, hidden: true }
-    ],
-    template: `      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">CONTRATO DE LOCAÇÃO DE IMÓVEL</h1>
+      <!-- Valores -->
+      <field section="Valores" name="valor_aluguel" label="Valor Mensal (Ex: R$ 940,45)" type="text" />
+      <field section="Valores" name="valor_extenso" label="Valor por Extenso" type="text" />
+      <field section="Valores" name="valor_bonus" label="Bônus Adimplência (Ex: R$ 40,45)" type="text" />
+      <field section="Valores" name="valor_bonus_extenso" label="Bônus por Extenso" type="text" />
+      <field section="Valores" name="indice_reajuste" label="Índice de Reajuste (Ex: IGP-M/FGV)" type="text" />
+
+      <!-- Conta -->
+      <field section="Conta p/ Pagamento" name="banco" label="Banco (Ex: Banco do Brasil)" type="text" />
+      <field section="Conta p/ Pagamento" name="agencia" label="Agência" type="text" />
+      <field section="Conta p/ Pagamento" name="conta_banco" label="Conta (com dígito)" type="text" />
+      <field section="Conta p/ Pagamento" name="tipo_conta" label="Tipo de Conta" type="select">
+        <option value="">Selecione...</option>
+        <option value="Conta Corrente">Conta Corrente</option>
+        <option value="Conta Poupança">Conta Poupança</option>
+        <option value="Conta Salário">Conta Salário</option>
+        <option value="Conta Pagamento">Conta Pagamento</option>
+      </field>
+
+      <!-- Data e Local -->
+      <field section="Data e Local" name="foro_cidade" label="Cidade do Foro / Data" type="text" />
+      <field section="Data e Local" name="data_assinatura" label="Data da Assinatura" type="text" readonly="true" hidden="true" />
+    </fields>
+
+    <template>
+      <![CDATA[
+      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">CONTRATO DE LOCAÇÃO DE IMÓVEL</h1>
       
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
         <tr>
@@ -200,7 +214,7 @@ const Contracts = {
         </tr>
       </table>
       
-      <p style="text-align: justify; margin-bottom: 1.5rem;"><strong>IMÓVEL PARA VISTORIA:</strong><br>
+      <p style="text-align: justify; margin-bottom: 1.5rem;"><strong>IMÓVEL PARA VISTORIA:</strong><br/>
       <span class="highlight" data-field="end_imovel">___</span>, CEP <span class="highlight" data-field="cep_imovel">___</span>.</p>
       
       <h2 style="text-align: center; font-size: 12pt; margin-top: 1rem; margin-bottom: 1rem;">LAUDO DE VISTORIA</h2>
@@ -252,6 +266,71 @@ const Contracts = {
         <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Bacia/Vaso com Caixa Acoplada</td></tr>
         <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Ducha higiênica</td></tr>
       </table>
-    `
+      ]]>
+    </template>
+  </contract>
+</database>
+`;
+
+// Leitor interno: Transforma a string XML no objeto global que a aplicação entende
+const Contracts = {};
+
+(function parseContractsXML() {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(ContractsXML, "text/xml");
+  const contractsNodes = xmlDoc.getElementsByTagName('contract');
+  
+  for (let i = 0; i < contractsNodes.length; i++) {
+    const cNode = contractsNodes[i];
+    const id = cNode.getAttribute('id');
+    
+    // Ler meta dados
+    const metaNode = cNode.getElementsByTagName('meta')[0];
+    const title = metaNode.getElementsByTagName('title')[0].textContent;
+    const description = metaNode.getElementsByTagName('description')[0].textContent;
+    const icon = metaNode.getElementsByTagName('icon')[0].textContent;
+    const color = metaNode.getElementsByTagName('color')[0].textContent;
+    const category = metaNode.getElementsByTagName('category')[0].textContent;
+    
+    // Ler campos dinâmicos do formulário
+    const fieldsNode = cNode.getElementsByTagName('fields')[0];
+    const fieldElements = fieldsNode.getElementsByTagName('field');
+    const fields = [];
+    
+    for (let j = 0; j < fieldElements.length; j++) {
+      const fNode = fieldElements[j];
+      const fieldObj = {
+        section: fNode.getAttribute('section'),
+        name: fNode.getAttribute('name'),
+        label: fNode.getAttribute('label'),
+        type: fNode.getAttribute('type')
+      };
+      
+      if (fNode.hasAttribute('mask')) fieldObj.mask = fNode.getAttribute('mask');
+      if (fNode.hasAttribute('readonly')) fieldObj.readonly = fNode.getAttribute('readonly') === 'true';
+      if (fNode.hasAttribute('hidden')) fieldObj.hidden = fNode.getAttribute('hidden') === 'true';
+      
+      if (fieldObj.type === 'select') {
+        const optionElements = fNode.getElementsByTagName('option');
+        fieldObj.options = [];
+        for (let k = 0; k < optionElements.length; k++) {
+          fieldObj.options.push({
+            value: optionElements[k].getAttribute('value'),
+            label: optionElements[k].textContent
+          });
+        }
+      }
+      fields.push(fieldObj);
+    }
+    
+    // Ler template HTML
+    const templateNode = cNode.getElementsByTagName('template')[0];
+    // O textContent pega automaticamente o conteúdo limpo dentro do CDATA
+    const templateContent = templateNode.textContent.trim(); 
+    
+    // Popular o objeto global Contracts
+    Contracts[id] = {
+      id, title, description, icon, color, category, fields, template: templateContent
+    };
   }
-};
+})();
