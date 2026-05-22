@@ -16,7 +16,12 @@ const Dashboard = {
           <div class="contract-row-name">${c.name || 'Contrato sem nome'}</div>
           <div class="contract-row-meta">${Contracts[c.templateId]?.title || 'Modelo Desconhecido'}</div>
         </div>
-        <div class="contract-row-date">${Utils.formatRelativeDate(c.updatedAt)}</div>
+        <div class="contract-row-date" style="display: flex; align-items: center; gap: 1rem;">
+          ${Utils.formatRelativeDate(c.updatedAt)}
+          <button class="btn-icon" style="color: var(--danger, #ef4444); padding: 0.25rem;" onclick="event.stopPropagation(); Dashboard.deleteContract('${c.id}')" title="Excluir Contrato">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </div>
       </div>
     `).join('') : `
       <div class="empty-state glass">
@@ -67,5 +72,13 @@ const Dashboard = {
         </div>
       </div>
     `;
+  },
+  
+  deleteContract(id) {
+    if (confirm('Tem certeza que deseja excluir este contrato permanentemente?')) {
+      Storage.delete(id);
+      // Re-renderizar o dashboard
+      this.render(document.getElementById('main-content') || document.body);
+    }
   }
 };

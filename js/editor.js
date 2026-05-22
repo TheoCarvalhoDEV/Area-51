@@ -12,7 +12,7 @@ const Editor = {
     if (param.startsWith('template=')) {
       isNew = true;
       const tId = param.split('=')[1];
-      this.template = Contracts[tId];
+      this.template = Contracts[tId] || (Storage._getData().customTemplates || []).find(t => t.id === tId);
       if (!this.template) { window.location.hash = '#templates'; return; }
       
       this.contract = {
@@ -41,7 +41,7 @@ const Editor = {
       const cId = param.split('=')[1];
       this.contract = Storage.getById(cId);
       if (!this.contract) { window.location.hash = '#dashboard'; return; }
-      this.template = Contracts[this.contract.templateId];
+      this.template = Contracts[this.contract.templateId] || (Storage._getData().customTemplates || []).find(t => t.id === this.contract.templateId);
     } else {
       window.location.hash = '#dashboard'; return;
     }
@@ -229,6 +229,17 @@ const Editor = {
          val = `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
       
+      // Aplicar máscara de formatação na preview caso o dado esteja sem máscara
+      if (val) {
+        const fieldDef = this.template.fields.find(f => f.name === field);
+        if (fieldDef && fieldDef.mask) {
+          const fnName = 'mask' + fieldDef.mask.charAt(0).toUpperCase() + fieldDef.mask.slice(1);
+          if (Utils[fnName]) {
+            val = Utils[fnName](val);
+          }
+        }
+      }
+      
       el.textContent = val ? val : '___';
       if(val) el.style.borderBottom = 'none';
       else el.style.borderBottom = '2px dashed var(--primary)';
@@ -260,7 +271,9 @@ const Editor = {
         return String.fromCharCode('0x' + p1);
     }));
     
-    const url = window.location.origin + window.location.pathname + '#tenant?data=' + b64;
+    // Usa o endereço exato que está no navegador (funciona local ou hospedado)
+    const baseUrl = window.location.href.split('#')[0];
+    const url = baseUrl + '#tenant?data=' + b64;
     
     navigator.clipboard.writeText(url).then(() => {
       alert('Link copiado para a área de transferência!\n\nEnvie este link no WhatsApp do Inquilino para ele preencher.');

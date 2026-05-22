@@ -32,6 +32,14 @@
 .btn:hover::after { opacity: 1; }
 .btn svg { width: 18px; height: 18px; }
 
+.btn:disabled, .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+  pointer-events: none; /* Garante que o hover e cliques sejam ignorados */
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: #ffffff;

@@ -95,8 +95,18 @@ const Utils = {
   // ── Aplicar Máscaras em Inputs ──
   applyMask(input, maskType) {
     input.addEventListener('input', () => {
-      const fn = Utils['mask' + maskType.charAt(0).toUpperCase() + maskType.slice(1)];
-      if (fn) input.value = fn(input.value);
+      let fnName = 'mask' + maskType.charAt(0).toUpperCase() + maskType.slice(1);
+      if (maskType.toLowerCase() === 'cpfcnpj') fnName = 'maskCPFCNPJ';
+      if (maskType.toLowerCase() === 'cep') fnName = 'maskCEP';
+      
+      const fn = Utils[fnName];
+      if (fn) {
+        const oldVal = input.value;
+        const newVal = fn(oldVal);
+        if (oldVal !== newVal) {
+          input.value = newVal;
+        }
+      }
     });
   },
 

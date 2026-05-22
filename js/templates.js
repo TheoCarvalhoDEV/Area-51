@@ -4,7 +4,9 @@
 
 const Templates = {
   render(container) {
-    const templates = Object.values(Contracts);
+    const data = Storage._getData();
+    const customTemplates = data.customTemplates || [];
+    const templates = [...Object.values(Contracts), ...customTemplates];
     
     let html = `
       <div class="page-header animate-fade-in-down">

@@ -1,8 +1,8 @@
 const Contracts = {
   locacao_residencial: {
     id: 'locacao_residencial',
-    title: 'Locação de Imóvel (Modelo Gláucia)',
-    description: 'Contrato de locação idêntico ao modelo personalizado enviado, incluindo Termo de Vistoria.',
+    title: 'Locação de Imóvel',
+    description: 'Contrato de locação.',
     icon: 'home',
     color: 'teal',
     category: 'Imobiliário',
@@ -69,9 +69,9 @@ const Contracts = {
     { section: 'Condições', name: 'data_termino', label: 'Data de Término (Automático)', type: 'date', readonly: true },
     { section: 'Condições', name: 'dia_vencimento', label: 'Dia de Vencimento', type: 'number' },
 
-    { section: 'Valores', name: 'valor_aluguel', label: 'Valor Mensal (Ex: R$ 940,45)', type: 'text' },
+    { section: 'Valores', name: 'valor_aluguel', label: 'Valor Mensal (Ex: R$ 940,45)', type: 'text', mask: 'currency' },
     { section: 'Valores', name: 'valor_extenso', label: 'Valor por Extenso', type: 'text' },
-    { section: 'Valores', name: 'valor_bonus', label: 'Bônus Adimplência (Ex: R$ 40,45)', type: 'text' },
+    { section: 'Valores', name: 'valor_bonus', label: 'Bônus Adimplência (Ex: R$ 40,45)', type: 'text', mask: 'currency' },
     { section: 'Valores', name: 'valor_bonus_extenso', label: 'Bônus por Extenso', type: 'text' },
     { section: 'Valores', name: 'indice_reajuste', label: 'Índice de Reajuste (Ex: IGP-M/FGV)', type: 'text' },
 
@@ -264,6 +264,89 @@ const Contracts = {
         <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Bacia/Vaso com Caixa Acoplada</td></tr>
         <tr><td style="border: 1px solid black; padding: 4px 8px; width: 40px; text-align: center;">01</td><td style="border: 1px solid black; padding: 4px 8px;">Ducha higiênica</td></tr>
       </table>
+    `
+  },
+  locacao_simples: {
+    id: 'locacao_simples',
+    title: 'Minuta de Locação Residencial (Simples)',
+    description: 'Modelo de contrato simplificado com objeto, prazo, valor e condições.',
+    icon: 'home',
+    color: 'blue',
+    category: 'Imobiliário',
+    fields: [
+      { section: 'Locador', name: 'nome_locador', label: 'Nome do Locador', type: 'text' },
+      { section: 'Locador', name: 'rg_locador', label: 'RG do Locador', type: 'text' },
+      { section: 'Locador', name: 'doc_locador', label: 'CPF do Locador', type: 'text', mask: 'cpfcnpj' },
+      { section: 'Locatário', name: 'nome_locatario', label: 'Nome do Locatário', type: 'text' },
+      { section: 'Locatário', name: 'rg_locatario', label: 'RG do Locatário', type: 'text' },
+      { section: 'Locatário', name: 'doc_locatario', label: 'CPF do Locatário', type: 'text', mask: 'cpfcnpj' },
+      { section: 'Imóvel', name: 'desc_imovel', label: 'Descrição do Imóvel', type: 'textarea' },
+      { section: 'Imóvel', name: 'end_imovel', label: 'Localização Completa', type: 'textarea' },
+      { section: 'Condições', name: 'prazo_meses', label: 'Prazo em Meses (ex: 12)', type: 'number' },
+      { section: 'Condições', name: 'data_inicio', label: 'Data de Início', type: 'date' },
+      { section: 'Condições', name: 'data_termino', label: 'Data de Término', type: 'date' },
+      { section: 'Valores', name: 'valor_aluguel', label: 'Valor Mensal (R$)', type: 'text', mask: 'currency' },
+      { section: 'Data e Local', name: 'foro_cidade', label: 'Cidade do Foro / Data', type: 'text' },
+      { section: 'Data e Local', name: 'data_assinatura', label: 'Data da Assinatura', type: 'text', readonly: true, hidden: true }
+    ],
+    template: `
+      <h1 style="font-size: 14pt; margin-bottom: 2rem; text-align: center;">INSTRUMENTO PARTICULAR DE CONTRATO DE LOCAÇÃO DE IMÓVEL RESIDENCIAL</h1>
+      
+      <h2 style="font-size: 12pt; margin-top: 1rem; margin-bottom: 0.5rem;">1. Identificação das Partes Contratantes</h2>
+      <p style="text-align: justify; margin-bottom: 1rem;">
+        <strong>LOCADOR:</strong> <span class="highlight" data-field="nome_locador">___</span>, portador do RG nº <span class="highlight" data-field="rg_locador">___</span> e CPF nº <span class="highlight" data-field="doc_locador">___</span>.
+      </p>
+      <p style="text-align: justify; margin-bottom: 1rem;">
+        <strong>LOCATÁRIO:</strong> <span class="highlight" data-field="nome_locatario">___</span>, portador do RG nº <span class="highlight" data-field="rg_locatario">___</span> e CPF nº <span class="highlight" data-field="doc_locatario">___</span>.
+      </p>
+      <p style="text-align: justify; margin-bottom: 1rem;">
+        As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Locação Residencial, que se regerá pelas cláusulas seguintes.
+      </p>
+
+      <h2 style="font-size: 12pt; margin-top: 1rem; margin-bottom: 0.5rem;">2. Objeto do Contrato</h2>
+      <ul style="margin-left: 20px; margin-bottom: 1rem; text-align: justify; list-style: none;">
+        <li><strong>2.1 Denominação do imóvel:</strong> Residencial</li>
+        <li><strong>2.2 Localização:</strong> <span class="highlight" data-field="end_imovel">___</span></li>
+        <li><strong>2.3 Descrição:</strong> <span class="highlight" data-field="desc_imovel">___</span></li>
+        <li><strong>2.4 Destinação:</strong> Somente fins residenciais.</li>
+      </ul>
+
+      <h2 style="font-size: 12pt; margin-top: 1rem; margin-bottom: 0.5rem;">3. Prazo do Contrato</h2>
+      <p style="text-align: justify; margin-bottom: 1rem;">
+        <strong>3.1</strong> O presente contrato terá vigência pelo prazo de <span class="highlight" data-field="prazo_meses">___</span> meses, iniciando-se em <span class="highlight" data-field="data_inicio">___</span> e terminando em <span class="highlight" data-field="data_termino">___</span>.
+      </p>
+      <p style="text-align: justify; margin-bottom: 1rem;">
+        <strong>3.2</strong> O fim da locação independe de notificação judicial ou extrajudicial, obrigando-se o(a) LOCATÁRIO(A) a restituir o imóvel, completamente livre e desocupado.
+      </p>
+      <p style="text-align: justify; margin-bottom: 1rem;">
+        <strong>3.3</strong> O contrato poderá ser renovado por igual período, mediante solicitação por escrito com antecedência mínima de 30 (trinta) dias.
+      </p>
+
+      <h2 style="font-size: 12pt; margin-top: 1rem; margin-bottom: 0.5rem;">4. Do Valor e Pagamento</h2>
+      <p style="text-align: justify; margin-bottom: 1rem;">
+        O valor do aluguel mensal é de <span class="highlight" data-field="valor_aluguel">___</span>, a ser pago pontualmente até a data de vencimento estipulada entre as partes.
+      </p>
+
+      <p style="text-align: justify; margin-bottom: 2rem;">
+        Por estarem assim justos e contratados, assinam o presente instrumento.
+      </p>
+
+      <p style="text-align: right; margin-bottom: 4rem;">
+        <span class="highlight" data-field="foro_cidade">___</span>, <span class="highlight" data-field="data_assinatura">___</span>.
+      </p>
+
+      <div class="signatures">
+        <div class="signature-block">
+          <div class="signature-line">
+            Locador: <span class="highlight" data-field="nome_locador">___</span>
+          </div>
+        </div>
+        <div class="signature-block">
+          <div class="signature-line">
+            Locatário: <span class="highlight" data-field="nome_locatario">___</span>
+          </div>
+        </div>
+      </div>
     `
   }
 };

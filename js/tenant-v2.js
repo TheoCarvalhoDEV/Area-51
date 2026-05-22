@@ -12,6 +12,7 @@ const Tenant = {
       return;
     }
     
+    let tId = '';
     try {
       const b64 = param.split('=')[1];
       const str = decodeURIComponent(Array.prototype.map.call(atob(b64), function(c) {
@@ -19,11 +20,17 @@ const Tenant = {
       }).join(''));
       const payload = JSON.parse(str);
       
-      this.template = Contracts[payload.t];
+      tId = payload.t;
       this.contract = {
         templateId: payload.t,
         fields: payload.f
       };
+      
+      this.template = Contracts[payload.t] || (Storage._getData().customTemplates || []).find(t => t.id === payload.t);
+      if (!this.template) {
+        container.innerHTML = '<h3 style="text-align:center; padding:3rem;">Link inválido ou expirado. Modelo não encontrado.</h3>';
+        return;
+      }
       
     } catch (e) {
       container.innerHTML = '<h3 style="color:red; text-align:center; padding: 3rem;">Erro ao ler o link do contrato.</h3>';
@@ -61,10 +68,18 @@ const Tenant = {
             <div class="tenant-form-panel glass" id="tenant-form-container" style="margin-top: 2rem;"></div>
 
           </div>
+          <div style="margin-top: 1.5rem; display: flex; align-items: flex-start; gap: 0.5rem; background: var(--card-bg); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+            <input type="checkbox" id="aceito_contrato" style="margin-top: 0.25rem; width: 18px; height: 18px;" onchange="document.getElementById('btn_salvar_inquilino').disabled = !this.checked">
+            <label for="aceito_contrato" style="font-size: 0.95rem; color: var(--text-main); cursor: pointer;">
+              Declaro que li e concordo com todos os termos descritos no contrato acima.
+            </label>
+          </div>
           
-          <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1.2rem; font-size: 1.1rem; justify-content: center;" onclick="Tenant.finish()">
-            Salvar e Enviar para o Locador
-          </button>
+          <div style="position: relative;" onclick="if(document.getElementById('btn_salvar_inquilino').disabled) alert('⚠️ Por favor, marque a caixa acima confirmando que leu o contrato para poder salvar.')">
+            <button id="btn_salvar_inquilino" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 1.2rem; font-size: 1.1rem; justify-content: center;" onclick="Tenant.finish()" disabled>
+              Salvar e Enviar para o Locador
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -82,16 +97,17 @@ const Tenant = {
       if (f.hidden) return;
       
       let inputHtml = '';
+      const val = this.contract.fields[f.name] || '';
       if (f.type === 'textarea') {
-        inputHtml = `<textarea class="form-textarea" data-field="${f.name}"></textarea>`;
+        inputHtml = `<textarea class="form-textarea" data-field="${f.name}">${val}</textarea>`;
       } else if (f.type === 'select') {
         inputHtml = `<select class="form-input" data-field="${f.name}">`;
         f.options.forEach(opt => {
-          inputHtml += `<option value="${opt.value}">${opt.label}</option>`;
+          inputHtml += `<option value="${opt.value}" ${val === opt.value ? 'selected' : ''}>${opt.label}</option>`;
         });
         inputHtml += `</select>`;
       } else {
-        inputHtml = `<input type="${f.type}" class="form-input" data-field="${f.name}" ${f.mask ? `data-mask="${f.mask}"` : ''}>`;
+        inputHtml = `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${val}" ${f.mask ? `data-mask="${f.mask}"` : ''}>`;
       }
 
       html += `<div class="form-group">
@@ -104,7 +120,10 @@ const Tenant = {
 
     container.querySelectorAll('input, textarea, select').forEach(el => {
       const mask = el.getAttribute('data-mask');
-      if (mask) Utils.applyMask(el, mask);
+      if (mask) {
+        Utils.applyMask(el, mask);
+        if (el.value) el.dispatchEvent(new Event('input'));
+      }
       
       el.addEventListener('input', () => {
         const fieldName = el.getAttribute('data-field');
@@ -131,11 +150,52 @@ const Tenant = {
          val = `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
       
+      // Aplicar máscara de formatação na preview caso o dado esteja sem máscara
+      if (val) {
+        const fieldDef = this.template.fields.find(f => f.name === field);
+        if (fieldDef && fieldDef.mask) {
+          const fnName = 'mask' + fieldDef.mask.charAt(0).toUpperCase() + fieldDef.mask.slice(1);
+          if (Utils[fnName]) {
+            val = Utils[fnName](val);
+          }
+        }
+      }
+      
       el.textContent = val ? val : '___';
     });
   },
 
   finish() {
+    // Validação de CPF
+    let isValid = true;
+    let errorMsg = '';
+    
+    document.querySelectorAll('input[data-mask="cpfcnpj"]').forEach(el => {
+      const val = el.value.replace(/\D/g, '');
+      if (val.length > 0 && val.length <= 11) {
+        if (!Utils.isValidCPF(val)) {
+          isValid = false;
+          errorMsg = 'O CPF informado (' + el.value + ') é inválido. Por favor, corrija.';
+          el.style.borderColor = 'red';
+        } else {
+          el.style.borderColor = '';
+        }
+      }
+    });
+
+    if (!isValid) {
+      alert(errorMsg);
+      return;
+    }
+
+    // Validação de campos vazios (opcional, mas recomendado)
+    const requiredEmpty = Array.from(document.querySelectorAll('#tenant-form-container input, #tenant-form-container select')).find(el => !el.value.trim());
+    if (requiredEmpty) {
+      if (!confirm('Ainda há campos vazios. Tem certeza que deseja enviar o contrato incompleto?')) {
+        return;
+      }
+    }
+
     // Create base64 payload for import
     const payload = {
       t: this.contract.templateId,
@@ -183,9 +243,11 @@ const Tenant = {
       `;
     }
     
-    // Hide original main submit button
-    const submitBtn = document.querySelector('.tenant-card > button');
+    // Hide original main submit button and checkbox
+    const submitBtn = document.getElementById('btn_salvar_inquilino');
     if (submitBtn) submitBtn.style.display = 'none';
+    const aceitoContainer = document.getElementById('aceito_contrato')?.parentElement;
+    if (aceitoContainer) aceitoContainer.style.display = 'none';
   },
 
   downloadPDF() {

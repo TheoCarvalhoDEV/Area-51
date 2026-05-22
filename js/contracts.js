@@ -48,8 +48,11 @@ const ContractsView = {
               <div class="contract-row-name">${nomeCliente}</div>
               <div class="contract-row-meta"><strong>${tituloContrato}</strong> • Início: ${inicio}</div>
             </div>
-            <div class="contract-row-date" style="font-size: 0.95rem; font-weight: 600; color: var(--primary);">
+            <div class="contract-row-date" style="font-size: 0.95rem; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 1rem;">
               ${valor}
+              <button class="btn-icon" style="color: var(--danger, #ef4444); padding: 0.25rem;" onclick="event.stopPropagation(); ContractsView.deleteContract('${c.id}')" title="Excluir Contrato">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
             </div>
           </div>
         `;
@@ -131,6 +134,14 @@ const ContractsView = {
       
       listComercial.style.display = 'block';
       listResidencial.style.display = 'none';
+    }
+  },
+  
+  deleteContract(id) {
+    if (confirm('Tem certeza que deseja excluir este contrato permanentemente?')) {
+      Storage.delete(id);
+      // Re-renderizar a tela para atualizar a lista
+      this.render(document.getElementById('main-content') || document.body);
     }
   }
 };
