@@ -1,0 +1,75 @@
+/* Bottom Navigation Bar (Mobile) */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--card-bg, #ffffff);
+  border-top: 1px solid var(--border-light, rgba(0, 0, 0, 0.08));
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05);
+  display: none; /* Escondido por padrão no desktop */
+}
+
+.bottom-nav-list {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.bottom-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--text-light, #94A3B8);
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+  padding: 4px 12px;
+  border-radius: var(--radius-md, 12px);
+}
+
+.bottom-nav-link svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  transition: all 0.2s ease;
+}
+
+/* Estado Ativo */
+.bottom-nav-link.active {
+  color: var(--primary, #003D7A);
+  font-weight: 500;
+}
+
+.bottom-nav-link.active svg {
+  fill: var(--primary-light, rgba(0, 61, 122, 0.08));
+  stroke-width: 2.5px;
+}
+
+@media(max-width: 768px) {
+  /* Mostrar apenas no mobile */
+  .bottom-nav {
+    display: block;
+  }
+  
+  /* Ajustar o padding principal para não sobrepor o conteúdo no final */
+  #main-content {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+  }
+  
+  /* Esconder o botão hambúrguer no mobile-header */
+  .mobile-header .btn-icon {
+    display: none !important;
+  }
+  
+  /* Se tiver no modo inquilino (que não precisa de nav), podemos esconder */
+  body.tenant-mode .bottom-nav {
+    display: none !important;
+  }
+}

@@ -7,33 +7,45 @@ const Admin = {
     const profile = Storage.getAdminProfile();
     
     container.innerHTML = `
-      <div class="admin-container animate-fade-in-up" style="max-width: 800px; margin: 0 auto; padding: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <div class="admin-container animate-fade-in-up">
+        
+        <div class="page-header">
           <div>
-            <h1 style="color: var(--text-light); margin-bottom: 0.5rem; font-family: var(--font-ui);">Meu Perfil (Locador)</h1>
-            <p style="color: var(--text-muted);">Estes dados serão preenchidos automaticamente em todos os novos contratos.</p>
+            <h1 class="page-title">Meu Perfil</h1>
+            <p class="page-subtitle">Estes dados serão preenchidos automaticamente em todos os novos contratos.</p>
           </div>
-          <button class="btn btn-primary" onclick="Admin.save()">
+          <button class="btn btn-primary" onclick="Admin.save()" style="white-space: nowrap;">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            Salvar Perfil
+            Salvar
           </button>
         </div>
 
-        <div class="glass" style="padding: 2rem; border-radius: 12px;">
+        <div class="card">
           <!-- Seção Pessoal -->
-          <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Dados Pessoais (Locador)</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
-            <div class="form-group" style="grid-column: 1 / -1;">
+          <h3 class="section-title">Dados Pessoais (Locador)</h3>
+          <div class="form-grid">
+            <div class="form-group form-group-full">
               <label class="form-label">Nome Completo</label>
               <input type="text" class="form-input" id="admin_nome_locador" value="${profile.nome_locador || ''}">
             </div>
             <div class="form-group">
               <label class="form-label">Nacionalidade</label>
-              <input type="text" class="form-input" id="admin_nac_locador" value="${profile.nac_locador || ''}">
+              <select class="form-input" id="admin_nac_locador">
+                <option value="brasileiro(a)">Brasileiro(a)</option>
+                <option value="estrangeiro(a)">Estrangeiro(a)</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">Estado Civil</label>
-              <input type="text" class="form-input" id="admin_est_civil_locador" value="${profile.est_civil_locador || ''}">
+              <select class="form-input" id="admin_est_civil_locador">
+                <option value="">Selecione...</option>
+                <option value="solteiro(a)">Solteiro(a)</option>
+                <option value="casado(a)">Casado(a)</option>
+                <option value="divorciado(a)">Divorciado(a)</option>
+                <option value="viúvo(a)">Viúvo(a)</option>
+                <option value="separado(a) judicialmente">Separado(a) judicialmente</option>
+                <option value="em união estável">União Estável</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">RG</label>
@@ -46,8 +58,8 @@ const Admin = {
           </div>
 
           <!-- Seção Banco -->
-          <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">Dados Bancários para Recebimento</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <h3 class="section-title">Dados Bancários para Recebimento</h3>
+          <div class="form-grid">
             <div class="form-group">
               <label class="form-label">Banco</label>
               <input type="text" class="form-input" id="admin_banco" value="${profile.banco || ''}">
@@ -62,12 +74,23 @@ const Admin = {
             </div>
             <div class="form-group">
               <label class="form-label">Tipo de Conta</label>
-              <input type="text" class="form-input" id="admin_tipo_conta" value="${profile.tipo_conta || ''}" placeholder="Ex: Conta Corrente">
+              <select class="form-input" id="admin_tipo_conta">
+                <option value="">Selecione...</option>
+                <option value="Conta Corrente">Conta Corrente</option>
+                <option value="Conta Poupança">Conta Poupança</option>
+                <option value="Conta Salário">Conta Salário</option>
+                <option value="Conta Pagamento">Conta Pagamento</option>
+              </select>
             </div>
           </div>
         </div>
       </div>
     `;
+
+    // Seta os valores iniciais dos selects
+    if (profile.nac_locador) container.querySelector('#admin_nac_locador').value = profile.nac_locador;
+    if (profile.est_civil_locador) container.querySelector('#admin_est_civil_locador').value = profile.est_civil_locador;
+    if (profile.tipo_conta) container.querySelector('#admin_tipo_conta').value = profile.tipo_conta;
 
     // Aplica as máscaras
     container.querySelectorAll('input[data-mask]').forEach(el => {

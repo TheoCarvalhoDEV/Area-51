@@ -274,6 +274,11 @@
   .preview-document {
     padding: 1.5rem;
   }
+  /* Eleva o botão flutuante para não ser coberto pela barra inferior */
+  .fab-preview {
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    right: 1.5rem;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
