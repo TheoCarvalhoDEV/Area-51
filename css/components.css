@@ -325,3 +325,11 @@ select.form-input, select.form-select {
   display: block;
   opacity: 1;
 }
+
+/* Utilitários */
+.mt-8 {
+  margin-top: 2rem !important;
+}
+.ml-auto {
+  margin-left: auto !important;
+}
