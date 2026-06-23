@@ -265,7 +265,8 @@ const Tenant = {
             Baixar PDF (Opcional)
           </button>
         </div>
-      `;
+        `;
+      }
       
       const submitBtn = document.getElementById('btn_salvar_inquilino');
       if (submitBtn) submitBtn.style.display = 'none';
