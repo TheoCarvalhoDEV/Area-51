@@ -157,8 +157,6 @@ const App = {
       return; // Interrompe a execução normal de roteamento
     }
     
-    const route = this.routes[path] || 'dashboard';
-    
     // Esconder a navegação e a sidebar se for a tela do Tenant (Cliente)
     if (route === 'tenant') {
       document.body.classList.add('tenant-mode');
