@@ -38,6 +38,7 @@ const ContractsView = {
         const valor = c.fields && c.fields.valor_aluguel ? c.fields.valor_aluguel : 'R$ ---';
         const inicio = c.fields && c.fields.data_inicio ? Utils.formatDate(c.fields.data_inicio) : '---';
         const tituloContrato = c.name || 'Contrato sem nome';
+        const status = Utils.getContractStatus(c);
 
         return `
           <div class="contract-row" onclick="window.location.hash='#editor?id=${c.id}'">
@@ -45,7 +46,10 @@ const ContractsView = {
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
             </div>
             <div class="contract-row-info">
-              <div class="contract-row-name">${nomeCliente}</div>
+              <div class="contract-row-name" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                ${nomeCliente}
+                <span class="badge-status ${status.class}">${status.label}</span>
+              </div>
               <div class="contract-row-meta"><strong>${tituloContrato}</strong> • Início: ${inicio}</div>
             </div>
             <div class="contract-row-date" style="font-size: 0.95rem; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 1rem;">
