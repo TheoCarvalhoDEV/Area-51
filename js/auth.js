@@ -133,7 +133,12 @@ const AuthUI = {
     const errorDiv = document.getElementById('auth-error-msg');
     const submitBtn = document.getElementById('auth-submit-btn');
     
+    // Resetar estilos de erro para o padrão
+    errorDiv.style.background = 'rgba(220, 53, 69, 0.1)';
+    errorDiv.style.color = '#dc3545';
+    errorDiv.style.borderColor = 'rgba(220, 53, 69, 0.2)';
     errorDiv.style.display = 'none';
+
     const originalText = submitBtn.textContent;
     submitBtn.disabled = true;
     submitBtn.innerHTML = 'Aguarde...';
@@ -143,7 +148,22 @@ const AuthUI = {
         .then(({ data, error }) => {
           if (error) throw error;
           console.log("Conta criada com sucesso:", data.user);
-          // O Listener de Auth no app.js cuidará do redirecionamento
+          
+          if (data.user && !data.session) {
+            // Cadastro bem sucedido mas necessita confirmação de e-mail
+            errorDiv.style.background = 'rgba(40, 167, 69, 0.1)';
+            errorDiv.style.color = '#28a745';
+            errorDiv.style.borderColor = 'rgba(40, 167, 69, 0.2)';
+            errorDiv.textContent = 'Cadastro realizado com sucesso! Um e-mail de confirmação foi enviado. Por favor, confirme-o antes de fazer o login.';
+            errorDiv.style.display = 'block';
+            
+            // Voltar para o modo de login
+            this.isRegisterMode = true; // Força o toggle a mudar para login
+            this.toggleMode({ preventDefault: () => {} });
+            
+            // Limpar campo de senha
+            document.getElementById('auth-password').value = '';
+          }
         })
         .catch((error) => {
           console.error(error);
@@ -185,6 +205,9 @@ const AuthUI = {
     }
     if (msg.includes('confirm your email') || msg.includes('Email not confirmed')) {
       return 'Por favor, confirme seu endereço de e-mail antes de fazer login.';
+    }
+    if (msg.includes('Email address') && msg.includes('invalid')) {
+      return 'O endereço de e-mail inserido é inválido ou não é aceito.';
     }
     
     return msg; // Retorna mensagem nativa se não mapeada
