@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// AuthUI - Interface e controle de Autenticação Firebase
+// AuthUI - Interface e controle de Autenticação Supabase
 // ═══════════════════════════════════════════════════════
 
 const AuthUI = {
@@ -139,28 +139,28 @@ const AuthUI = {
     submitBtn.innerHTML = 'Aguarde...';
 
     if (this.isRegisterMode) {
-      FirebaseAuth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          // Cadastro com sucesso
-          console.log("Conta criada com sucesso:", userCredential.user);
+      supabaseClient.auth.signUp({ email, password })
+        .then(({ data, error }) => {
+          if (error) throw error;
+          console.log("Conta criada com sucesso:", data.user);
           // O Listener de Auth no app.js cuidará do redirecionamento
         })
         .catch((error) => {
           console.error(error);
-          errorDiv.textContent = this.translateError(error.code);
+          errorDiv.textContent = this.translateError(error.message);
           errorDiv.style.display = 'block';
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
         });
     } else {
-      FirebaseAuth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          // Login com sucesso
-          console.log("Login realizado com sucesso:", userCredential.user);
+      supabaseClient.auth.signInWithPassword({ email, password })
+        .then(({ data, error }) => {
+          if (error) throw error;
+          console.log("Login realizado com sucesso:", data.user);
         })
         .catch((error) => {
           console.error(error);
-          errorDiv.textContent = this.translateError(error.code);
+          errorDiv.textContent = this.translateError(error.message);
           errorDiv.style.display = 'block';
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
@@ -168,27 +168,31 @@ const AuthUI = {
     }
   },
 
-  translateError(code) {
-    switch (code) {
-      case 'auth/email-already-in-use':
-        return 'Este endereço de e-mail já está cadastrado em outra conta.';
-      case 'auth/invalid-email':
-        return 'O endereço de e-mail informado não é válido.';
-      case 'auth/weak-password':
-        return 'A senha é muito fraca. Digite pelo menos 6 caracteres.';
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-        return 'E-mail ou senha incorretos. Verifique e tente novamente.';
-      case 'auth/invalid-credential':
-        return 'Credenciais inválidas. Verifique e tente novamente.';
-      default:
-        return 'Ocorreu um erro ao processar sua solicitação. Tente novamente mais tarde.';
+  translateError(msg) {
+    if (!msg) return 'Ocorreu um erro ao processar sua solicitação.';
+    
+    if (msg.includes('already registered')) {
+      return 'Este endereço de e-mail já está cadastrado em outra conta.';
     }
+    if (msg.includes('Invalid login credentials')) {
+      return 'E-mail ou senha incorretos. Verifique e tente novamente.';
+    }
+    if (msg.includes('signup is disabled') || msg.includes('Signups not allowed')) {
+      return 'O cadastro de novos usuários está desativado para este projeto.';
+    }
+    if (msg.includes('Password should be')) {
+      return 'A senha é muito fraca. Digite pelo menos 6 caracteres.';
+    }
+    if (msg.includes('confirm your email') || msg.includes('Email not confirmed')) {
+      return 'Por favor, confirme seu endereço de e-mail antes de fazer login.';
+    }
+    
+    return msg; // Retorna mensagem nativa se não mapeada
   },
 
   logout() {
-    if (FirebaseActive && FirebaseAuth) {
-      FirebaseAuth.signOut().then(() => {
+    if (SupabaseActive && supabaseClient) {
+      supabaseClient.auth.signOut().then(() => {
         console.log("Desconectado com sucesso.");
         window.location.hash = '#';
         window.location.reload();

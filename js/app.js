@@ -17,8 +17,10 @@ const App = {
   init() {
     this.container = document.getElementById('main-content');
     
-    if (FirebaseActive && FirebaseAuth) {
-      FirebaseAuth.onAuthStateChanged(user => {
+    if (SupabaseActive && supabaseClient) {
+      // Registrar listener de mudanças no estado da sessão
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        const user = session ? session.user : null;
         this.user = user;
         
         // Exibir/esconder botão de Logout na sidebar
@@ -75,8 +77,8 @@ const App = {
     
     const route = this.routes[path] || 'dashboard';
     
-    // Interceptação de login se Firebase estiver ativo
-    if (FirebaseActive && !this.user && route !== 'tenant') {
+    // Interceptação de login se Supabase estiver ativo
+    if (SupabaseActive && !this.user && route !== 'tenant') {
       document.body.classList.add('tenant-mode'); // Esconde sidebar/navbar
       AuthUI.render(this.container);
       return;

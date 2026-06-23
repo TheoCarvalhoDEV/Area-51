@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// Storage — CRUD de contratos integrado com Firebase/localStorage
+// Storage — CRUD de contratos integrado com Supabase/localStorage
 // ═══════════════════════════════════════════════════════
 
 const Storage = {
@@ -20,86 +20,117 @@ const Storage = {
     localStorage.setItem(this.KEY, JSON.stringify(data));
   },
 
-  // ── Sincronização e Carga com a Nuvem (Firebase) ──
+  // ── Sincronização e Carga com a Nuvem (Supabase) ──
   async loadCloudData() {
-    if (!FirebaseActive || !FirebaseAuth.currentUser) return;
-    const uid = FirebaseAuth.currentUser.uid;
+    if (!SupabaseActive || !supabaseClient) return;
     
     try {
-      // 1. Carregar Contratos do Firestore
-      const contractsSnapshot = await FirebaseDB.collection('users')
-        .doc(uid)
-        .collection('contracts')
-        .get();
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const user = session ? session.user : null;
+      if (!user) return;
+      
+      const uid = user.id;
+
+      // 1. Carregar Contratos do Supabase
+      const { data: dbContracts, error: dbError } = await supabaseClient
+        .from('contracts')
+        .select('*');
         
-      this.contractsCache = [];
-      contractsSnapshot.forEach(doc => {
-        this.contractsCache.push(doc.data());
-      });
+      if (dbError) throw dbError;
+        
+      this.contractsCache = dbContracts.map(item => ({
+        id: item.id,
+        name: item.name,
+        templateId: item.template_id,
+        fields: item.fields,
+        isFinalized: item.is_finalized,
+        cloudId: item.cloud_id,
+        cloudKey: item.cloud_key,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }));
       
       // Ordena por updatedAt decrescente
       this.contractsCache.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
-      // 2. Carregar Perfil do Firestore
-      const userDoc = await FirebaseDB.collection('users').doc(uid).get();
-      if (userDoc.exists && userDoc.data().profile) {
-        this.profileCache = userDoc.data().profile;
+      // 2. Carregar Perfil do Supabase
+      const { data: profileRecords, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('profile_data')
+        .eq('id', uid)
+        .maybeSingle();
+        
+      if (profileError) throw profileError;
+      
+      if (profileRecords && profileRecords.profile_data) {
+        this.profileCache = profileRecords.profile_data;
       } else {
         this.profileCache = {};
       }
       
-      console.log(`📦 Dados da nuvem carregados: ${this.contractsCache.length} contratos.`);
+      console.log(`📦 Dados do Supabase carregados: ${this.contractsCache.length} contratos.`);
     } catch (e) {
-      console.error("Erro ao carregar dados da nuvem:", e);
+      console.error("Erro ao carregar dados do Supabase:", e);
     }
   },
 
   async syncLocalDataToCloud() {
-    if (!FirebaseActive || !FirebaseAuth.currentUser) return;
-    const uid = FirebaseAuth.currentUser.uid;
-    const migratedKey = `migrated_local_data_${uid}`;
-
-    if (localStorage.getItem(migratedKey)) {
-      // Já migrado no passado, apenas carrega a nuvem para o cache
-      await this.loadCloudData();
-      return;
-    }
-
+    if (!SupabaseActive || !supabaseClient) return;
+    
     try {
-      // Importa dados do localStorage
-      const localData = this._getData();
-      if (localData.contracts && localData.contracts.length > 0) {
-        console.log(`Migrando ${localData.contracts.length} contratos locais para a nuvem...`);
-        const batch = FirebaseDB.batch();
-        
-        localData.contracts.forEach(contract => {
-          const docRef = FirebaseDB.collection('users')
-            .doc(uid)
-            .collection('contracts')
-            .doc(contract.id);
-            
-          batch.set(docRef, {
-            ...contract,
-            userId: uid,
-            updatedAt: contract.updatedAt || new Date().toISOString()
-          });
-        });
-        await batch.commit();
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const user = session ? session.user : null;
+      if (!user) return;
+      
+      const uid = user.id;
+      const migratedKey = `migrated_local_data_supabase_${uid}`;
+
+      if (localStorage.getItem(migratedKey)) {
+        // Já migrado, apenas carrega dados do banco para o cache
+        await this.loadCloudData();
+        return;
       }
 
-      // Importa perfil do localStorage
+      // Importa contratos locais do localStorage
+      const localData = this._getData();
+      if (localData.contracts && localData.contracts.length > 0) {
+        console.log(`Migrando ${localData.contracts.length} contratos locais para o Supabase...`);
+        
+        const contractsToInsert = localData.contracts.map(contract => ({
+          id: contract.id,
+          user_id: uid,
+          name: contract.name,
+          template_id: contract.templateId,
+          fields: contract.fields,
+          is_finalized: !!contract.isFinalized,
+          cloud_id: contract.cloudId || null,
+          cloud_key: contract.cloudKey || null,
+          created_at: contract.createdAt || new Date().toISOString(),
+          updated_at: contract.updatedAt || new Date().toISOString()
+        }));
+
+        const { error } = await supabaseClient
+          .from('contracts')
+          .insert(contractsToInsert);
+          
+        if (error) throw error;
+      }
+
+      // Importa perfil local do localStorage
       const localProfile = JSON.parse(localStorage.getItem('gerador_admin_profile')) || {};
       if (Object.keys(localProfile).length > 0) {
-        await FirebaseDB.collection('users').doc(uid).set({
-          profile: localProfile
-        }, { merge: true });
+        const { error } = await supabaseClient
+          .from('profiles')
+          .upsert({ id: uid, profile_data: localProfile });
+          
+        if (error) throw error;
       }
 
       // Marca como migrado
       localStorage.setItem(migratedKey, 'true');
-      console.log("✅ Migração de dados locais concluída com sucesso.");
+      console.log("✅ Sincronização local -> Supabase concluída com sucesso.");
     } catch (e) {
-      console.error("Erro ao migrar dados locais para a nuvem:", e);
+      console.error("Erro ao sincronizar dados com o Supabase:", e);
     }
 
     // Carrega o cache atualizado
@@ -108,7 +139,7 @@ const Storage = {
 
   // ── Listar todos os contratos ──
   getAll() {
-    if (FirebaseActive && FirebaseAuth.currentUser) {
+    if (SupabaseActive && App.user) {
       return this.contractsCache.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     }
     return this._getData().contracts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -116,7 +147,7 @@ const Storage = {
 
   // ── Buscar por ID ──
   getById(id) {
-    if (FirebaseActive && FirebaseAuth.currentUser) {
+    if (SupabaseActive && App.user) {
       return this.contractsCache.find(c => c.id === id) || null;
     }
     return this._getData().contracts.find(c => c.id === id) || null;
@@ -132,20 +163,30 @@ const Storage = {
       updatedAt: now,
     };
 
-    if (FirebaseActive && FirebaseAuth.currentUser) {
-      const uid = FirebaseAuth.currentUser.uid;
-      newContract.userId = uid;
+    if (SupabaseActive && App.user) {
+      newContract.userId = App.user.id;
       
-      // Salva no Cache
+      // Salva no cache local
       this.contractsCache.push(newContract);
       
-      // Salva na Nuvem (Background async)
-      FirebaseDB.collection('users')
-        .doc(uid)
-        .collection('contracts')
-        .doc(newContract.id)
-        .set(newContract)
-        .catch(err => console.error("Erro ao salvar contrato na nuvem:", err));
+      // Salva na nuvem no background
+      supabaseClient
+        .from('contracts')
+        .insert({
+          id: newContract.id,
+          user_id: App.user.id,
+          name: newContract.name,
+          template_id: newContract.templateId,
+          fields: newContract.fields,
+          is_finalized: !!newContract.isFinalized,
+          cloud_id: newContract.cloudId || null,
+          cloud_key: newContract.cloudKey || null,
+          created_at: newContract.createdAt,
+          updated_at: newContract.updatedAt
+        })
+        .then(({ error }) => {
+          if (error) console.error("Erro ao salvar contrato no Supabase:", error);
+        });
         
       return newContract;
     }
@@ -161,8 +202,7 @@ const Storage = {
   update(id, updates) {
     const now = new Date().toISOString();
     
-    if (FirebaseActive && FirebaseAuth.currentUser) {
-      const uid = FirebaseAuth.currentUser.uid;
+    if (SupabaseActive && App.user) {
       const idx = this.contractsCache.findIndex(c => c.id === id);
       if (idx === -1) return null;
       
@@ -172,13 +212,23 @@ const Storage = {
         updatedAt: now
       };
 
-      // Salva na Nuvem (Background async)
-      FirebaseDB.collection('users')
-        .doc(uid)
-        .collection('contracts')
-        .doc(id)
-        .set(this.contractsCache[idx], { merge: true })
-        .catch(err => console.error("Erro ao atualizar contrato na nuvem:", err));
+      // Salva na nuvem no background
+      const item = this.contractsCache[idx];
+      supabaseClient
+        .from('contracts')
+        .update({
+          name: item.name,
+          template_id: item.templateId,
+          fields: item.fields,
+          is_finalized: !!item.isFinalized,
+          cloud_id: item.cloudId || null,
+          cloud_key: item.cloudKey || null,
+          updated_at: item.updatedAt
+        })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.error("Erro ao atualizar contrato no Supabase:", error);
+        });
 
       return this.contractsCache[idx];
     }
@@ -198,17 +248,17 @@ const Storage = {
 
   // ── Excluir contrato ──
   delete(id) {
-    if (FirebaseActive && FirebaseAuth.currentUser) {
-      const uid = FirebaseAuth.currentUser.uid;
+    if (SupabaseActive && App.user) {
       this.contractsCache = this.contractsCache.filter(c => c.id !== id);
       
-      // Exclui na Nuvem (Background async)
-      FirebaseDB.collection('users')
-        .doc(uid)
-        .collection('contracts')
-        .doc(id)
+      // Exclui na nuvem no background
+      supabaseClient
+        .from('contracts')
         .delete()
-        .catch(err => console.error("Erro ao excluir contrato na nuvem:", err));
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.error("Erro ao excluir contrato no Supabase:", error);
+        });
         
       return;
     }
@@ -252,7 +302,7 @@ const Storage = {
 
   // ── Perfil do Admin ──
   getAdminProfile() {
-    if (FirebaseActive && FirebaseAuth.currentUser) {
+    if (SupabaseActive && App.user) {
       return this.profileCache;
     }
     try {
@@ -263,15 +313,16 @@ const Storage = {
   },
 
   saveAdminProfile(profile) {
-    if (FirebaseActive && FirebaseAuth.currentUser) {
-      const uid = FirebaseAuth.currentUser.uid;
+    if (SupabaseActive && App.user) {
       this.profileCache = profile;
       
-      // Salva na Nuvem (Background async)
-      FirebaseDB.collection('users')
-        .doc(uid)
-        .set({ profile }, { merge: true })
-        .catch(err => console.error("Erro ao salvar perfil na nuvem:", err));
+      // Salva na nuvem no background
+      supabaseClient
+        .from('profiles')
+        .upsert({ id: App.user.id, profile_data: profile })
+        .then(({ error }) => {
+          if (error) console.error("Erro ao salvar perfil no Supabase:", error);
+        });
         
       return;
     }
