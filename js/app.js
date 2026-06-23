@@ -16,15 +16,71 @@ const App = {
   
   init() {
     this.container = document.getElementById('main-content');
-    window.addEventListener('hashchange', () => this.handleRoute());
-    this.handleRoute();
+    
+    if (FirebaseActive && FirebaseAuth) {
+      FirebaseAuth.onAuthStateChanged(user => {
+        this.user = user;
+        
+        // Exibir/esconder botão de Logout na sidebar
+        this.updateAuthSidebarUI();
+        
+        // Sincronizar dados locais com a nuvem no primeiro login
+        if (user && typeof Storage !== 'undefined' && Storage.syncLocalDataToCloud) {
+          Storage.syncLocalDataToCloud().then(() => {
+            this.handleRoute();
+          });
+        } else {
+          this.handleRoute();
+        }
+      });
+      // Listener para cliques normais ou mudanças manuais de hash
+      window.addEventListener('hashchange', () => this.handleRoute());
+    } else {
+      window.addEventListener('hashchange', () => this.handleRoute());
+      this.handleRoute();
+    }
+    
     this.setupSidebar();
+  },
+  
+  updateAuthSidebarUI() {
+    const existingLogout = document.getElementById('sidebar-nav-logout');
+    if (existingLogout) existingLogout.remove();
+
+    if (this.user) {
+      const navSection = document.querySelector('.sidebar-nav');
+      if (navSection) {
+        const logoutItem = document.createElement('a');
+        logoutItem.id = 'sidebar-nav-logout';
+        logoutItem.href = '#';
+        logoutItem.className = 'nav-item';
+        logoutItem.style.color = '#dc3545';
+        logoutItem.style.marginTop = '1rem';
+        logoutItem.innerHTML = `
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:20px; height:20px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          <span class="nav-label">Sair da Conta</span>
+        `;
+        logoutItem.addEventListener('click', (e) => {
+          e.preventDefault();
+          AuthUI.logout();
+        });
+        navSection.appendChild(logoutItem);
+      }
+    }
   },
   
   handleRoute() {
     const hash = window.location.hash;
-    // Fix: split by '?' instead of '?id=' to support both '?id=' and '?template='
     const [path, param] = hash.split('?');
+    
+    const route = this.routes[path] || 'dashboard';
+    
+    // Interceptação de login se Firebase estiver ativo
+    if (FirebaseActive && !this.user && route !== 'tenant') {
+      document.body.classList.add('tenant-mode'); // Esconde sidebar/navbar
+      AuthUI.render(this.container);
+      return;
+    }
     
     // Rota Especial de Importação do Inquilino
     if (path === '#import') {

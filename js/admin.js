@@ -1,10 +1,14 @@
 // ═══════════════════════════════════════════════════════
-// Admin View - Configurações do Locador
+// Admin View - Configurações do Locador & Nuvem
 // ═══════════════════════════════════════════════════════
 
 const Admin = {
   render(container) {
     const profile = Storage.getAdminProfile();
+    let fbConfig = {};
+    try {
+      fbConfig = JSON.parse(localStorage.getItem('gerador_firebase_config')) || {};
+    } catch(e) {}
     
     container.innerHTML = `
       <div class="admin-container animate-fade-in-up">
@@ -84,6 +88,40 @@ const Admin = {
             </div>
           </div>
         </div>
+
+        <!-- Seção Banco de Dados em Nuvem (Firebase) -->
+        <div class="card" style="margin-top: 2rem;">
+          <h3 class="section-title">Banco de Dados em Nuvem (Firebase)</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Insira as credenciais do seu projeto Firebase para ativar o salvamento automático na nuvem, login seguro e links curtos para inquilinos. Deixe em branco para usar o modo offline (salvando apenas no seu navegador).
+          </p>
+          <div class="form-grid">
+            <div class="form-group form-group-full">
+              <label class="form-label">API Key</label>
+              <input type="text" class="form-input" id="admin_fb_apiKey" value="${fbConfig.apiKey || ''}" placeholder="AIzaSy...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Project ID</label>
+              <input type="text" class="form-input" id="admin_fb_projectId" value="${fbConfig.projectId || ''}" placeholder="meu-projeto-123">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Auth Domain</label>
+              <input type="text" class="form-input" id="admin_fb_authDomain" value="${fbConfig.authDomain || ''}" placeholder="meu-projeto-123.firebaseapp.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Storage Bucket</label>
+              <input type="text" class="form-input" id="admin_fb_storageBucket" value="${fbConfig.storageBucket || ''}" placeholder="meu-projeto-123.appspot.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Messaging Sender ID</label>
+              <input type="text" class="form-input" id="admin_fb_messagingSenderId" value="${fbConfig.messagingSenderId || ''}" placeholder="1234567890">
+            </div>
+            <div class="form-group form-group-full">
+              <label class="form-label">App ID</label>
+              <input type="text" class="form-input" id="admin_fb_appId" value="${fbConfig.appId || ''}" placeholder="1:1234567890:web:abcdef...">
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -112,16 +150,47 @@ const Admin = {
     };
 
     Storage.saveAdminProfile(profile);
+
+    // Salvar configuração do Firebase
+    const apiKey = document.getElementById('admin_fb_apiKey').value.trim();
+    const projectId = document.getElementById('admin_fb_projectId').value.trim();
+    const authDomain = document.getElementById('admin_fb_authDomain').value.trim();
+    const storageBucket = document.getElementById('admin_fb_storageBucket').value.trim();
+    const messagingSenderId = document.getElementById('admin_fb_messagingSenderId').value.trim();
+    const appId = document.getElementById('admin_fb_appId').value.trim();
+
+    let configChanged = false;
+    if (apiKey && projectId) {
+      const newConfig = { apiKey, projectId, authDomain, storageBucket, messagingSenderId, appId };
+      const currentConfigStr = localStorage.getItem('gerador_firebase_config');
+      if (JSON.stringify(newConfig) !== currentConfigStr) {
+        localStorage.setItem('gerador_firebase_config', JSON.stringify(newConfig));
+        configChanged = true;
+      }
+    } else {
+      if (localStorage.getItem('gerador_firebase_config')) {
+        localStorage.removeItem('gerador_firebase_config');
+        configChanged = true;
+      }
+    }
     
     // Mostra um feedback visual no botão
     const btn = document.querySelector('button[onclick="Admin.save()"]');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Salvo com Sucesso!';
-    btn.style.backgroundColor = 'var(--success)';
     
-    setTimeout(() => {
-      btn.innerHTML = originalText;
-      btn.style.backgroundColor = '';
-    }, 2000);
+    if (configChanged) {
+      btn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H12v4"></path></svg> Reiniciando...';
+      btn.style.backgroundColor = 'var(--primary)';
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      btn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Salvo com Sucesso!';
+      btn.style.backgroundColor = 'var(--success)';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.style.backgroundColor = '';
+      }, 2000);
+    }
   }
 };
