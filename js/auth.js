@@ -209,6 +209,9 @@ const AuthUI = {
     if (msg.includes('Email address') && msg.includes('invalid')) {
       return 'O endereço de e-mail inserido é inválido ou não é aceito.';
     }
+    if (msg.includes('rate limit exceeded')) {
+      return 'Limite de envios de e-mail excedido. Aguarde alguns minutos ou desative a "Confirmação de E-mail" no painel do Supabase.';
+    }
     
     return msg; // Retorna mensagem nativa se não mapeada
   },
