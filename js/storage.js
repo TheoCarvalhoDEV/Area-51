@@ -111,7 +111,7 @@ const Storage = {
 
         const { error } = await supabaseClient
           .from('contracts')
-          .insert(contractsToInsert);
+          .upsert(contractsToInsert, { onConflict: 'id' });
           
         if (error) throw error;
       }

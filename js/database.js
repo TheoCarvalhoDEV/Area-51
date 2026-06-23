@@ -74,47 +74,46 @@ const CloudDB = {
 
   // Save a new contract to the cloud server
   async saveContract(contractData, key) {
+    if (typeof supabaseClient === 'undefined') throw new Error("Supabase não inicializado.");
     const encryptedPayload = await this.encrypt(contractData, key);
-    const payload = {
-      name: "MeusImoveis_Contract",
-      data: {
-        encrypted: encryptedPayload
-      }
-    };
-    const res = await fetch('https://api.restful-api.dev/objects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error("Falha ao salvar contrato no servidor");
-    const result = await res.json();
-    return result.id; // Returns the server object ID
+    
+    // Gerar um ID aleatório simples estilo UUID para o link
+    const linkId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+    
+    const { error } = await supabaseClient
+      .from('tenant_links')
+      .insert([{ id: linkId, encrypted_payload: encryptedPayload }]);
+      
+    if (error) throw new Error("Falha ao salvar link seguro no Supabase: " + error.message);
+    return linkId;
   },
 
   // Update an existing contract on the cloud server
   async updateContract(serverId, contractData, key) {
+    if (typeof supabaseClient === 'undefined') throw new Error("Supabase não inicializado.");
     const encryptedPayload = await this.encrypt(contractData, key);
-    const payload = {
-      name: "MeusImoveis_Contract",
-      data: {
-        encrypted: encryptedPayload
-      }
-    };
-    const res = await fetch(`https://api.restful-api.dev/objects/${serverId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error("Falha ao atualizar contrato no servidor");
+    
+    const { error } = await supabaseClient
+      .from('tenant_links')
+      .update({ encrypted_payload: encryptedPayload })
+      .eq('id', serverId);
+      
+    if (error) throw new Error("Falha ao atualizar contrato no servidor: " + error.message);
     return true;
   },
 
   // Fetch and decrypt a contract from the cloud server
   async loadContract(serverId, key) {
-    const res = await fetch(`https://api.restful-api.dev/objects/${serverId}`);
-    if (!res.ok) throw new Error("Contrato expirou ou não existe no servidor");
-    const result = await res.json();
-    if (!result.data || !result.data.encrypted) throw new Error("Dados corrompidos ou formato inválido");
-    return await this.decrypt(result.data.encrypted, key);
+    if (typeof supabaseClient === 'undefined') throw new Error("Supabase não inicializado.");
+    
+    const { data, error } = await supabaseClient
+      .from('tenant_links')
+      .select('encrypted_payload')
+      .eq('id', serverId)
+      .single();
+      
+    if (error || !data) throw new Error("Contrato expirou ou não existe no servidor");
+    
+    return await this.decrypt(data.encrypted_payload, key);
   }
 };
