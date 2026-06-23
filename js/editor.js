@@ -47,24 +47,30 @@ const Editor = {
     }
 
     const isReadOnly = this.contract.isFinalized;
+    const status = Utils.getContractStatus(this.contract);
 
     container.innerHTML = `
-      <div class="editor-toolbar animate-fade-in-down">
-        <input type="text" id="contract-name" class="form-input editor-toolbar-title" style="width: auto; max-width: 400px; background: transparent; border-color: transparent;" value="${this.contract.name}" ${isReadOnly ? 'disabled' : ''}>
-        ${!isReadOnly ? `
-        <button class="btn btn-secondary" onclick="Editor.save(true)">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-          Salvar
-        </button>
-        <button class="btn btn-primary" onclick="Editor.generateTenantLink()" style="background: var(--primary);">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-          Gerar Link p/ Inquilino
-        </button>
-        ` : ''}
-        <button class="btn btn-primary" onclick="generatePDF()">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-          PDF
-        </button>
+      <div class="editor-toolbar animate-fade-in-down" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 250px;">
+          <input type="text" id="contract-name" class="form-input editor-toolbar-title" style="width: auto; max-width: 400px; background: transparent; border-color: transparent;" value="${this.contract.name}" ${isReadOnly ? 'disabled' : ''}>
+          <span id="editor-contract-status" class="badge-status ${status.class}">${status.label}</span>
+        </div>
+        <div class="editor-toolbar-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+          ${!isReadOnly ? `
+          <button class="btn btn-secondary" onclick="Editor.save(true)">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+            Salvar
+          </button>
+          <button class="btn btn-primary" onclick="Editor.generateTenantLink()" style="background: var(--primary);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+            Gerar Link p/ Inquilino
+          </button>
+          ` : ''}
+          <button class="btn btn-primary" onclick="generatePDF()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            PDF
+          </button>
+        </div>
       </div>
 
       <div class="editor-layout">
@@ -94,6 +100,29 @@ const Editor = {
     document.getElementById('contract-name').addEventListener('change', (e) => {
       this.contract.name = e.target.value;
     });
+
+    // Sincronização automática em segundo plano com a nuvem (caso o inquilino tenha preenchido)
+    if (this.contract && this.contract.cloudId && this.contract.cloudKey && !this.contract.isFinalized) {
+      CloudDB.loadContract(this.contract.cloudId, this.contract.cloudKey).then(cloudPayload => {
+        const localFieldsStr = JSON.stringify(this.contract.fields);
+        const cloudFieldsStr = JSON.stringify(cloudPayload.f);
+        
+        if (localFieldsStr !== cloudFieldsStr || cloudPayload.isFinalized) {
+          this.contract.fields = cloudPayload.f;
+          if (cloudPayload.isFinalized) {
+            this.contract.isFinalized = true;
+          }
+          
+          Storage.update(this.contract.id, {
+            fields: this.contract.fields,
+            isFinalized: this.contract.isFinalized
+          });
+          
+          // Se mudou ou finalizou, re-renderizamos a view
+          this.render(container, param);
+        }
+      }).catch(err => console.warn("Erro ao sincronizar com a nuvem no background:", err));
+    }
   },
   
   renderForm() {
@@ -188,31 +217,48 @@ const Editor = {
         const fieldName = el.getAttribute('data-field');
         this.contract.fields[fieldName] = el.value;
         
-        // Auto-calcular Data de Término
-        if (fieldName === 'data_inicio' || fieldName === 'prazo_extenso') {
-          const inicio = this.contract.fields['data_inicio'];
-          const prazo = this.contract.fields['prazo_extenso'];
+        // Auto-preencher valor por extenso se for campo monetário
+        if (fieldName === 'valor_aluguel' || fieldName === 'valor_bonus') {
+          const targetExtensoField = fieldName === 'valor_aluguel' ? 'valor_extenso' : 'valor_bonus_extenso';
+          const extensoVal = Utils.writeBRLInWords(el.value);
+          this.contract.fields[targetExtensoField] = extensoVal;
           
-          if (inicio && prazo) {
-            let meses = parseInt(prazo.split(' ')[0], 10);
-            if (!isNaN(meses) && meses > 0) {
-              const d = new Date(inicio + 'T12:00:00Z');
-              d.setMonth(d.getMonth() + meses);
-              d.setDate(d.getDate() - 1); // Ex: Começa 01/06/2020, termina 31/05/2021
-              
-              const ano = d.getUTCFullYear();
-              const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
-              const dia = String(d.getUTCDate()).padStart(2, '0');
-              const termino = `${ano}-${mes}-${dia}`;
-              
-              this.contract.fields['data_termino'] = termino;
-              const termEl = container.querySelector('[data-field="data_termino"]');
-              if (termEl) termEl.value = termino;
-            }
+          // Atualiza o valor no input correspondente na tela se existir
+          const extensoEl = container.querySelector(`[data-field="${targetExtensoField}"]`);
+          if (extensoEl) extensoEl.value = extensoVal;
+        }
+        
+        // Auto-calcular Data de Término
+        if (fieldName === 'data_inicio' || fieldName === 'prazo_extenso' || fieldName === 'prazo_meses') {
+          const inicio = this.contract.fields['data_inicio'];
+          const prazoExtenso = this.contract.fields['prazo_extenso'];
+          const prazoMeses = this.contract.fields['prazo_meses'];
+          
+          let meses = 0;
+          if (prazoExtenso) {
+            meses = parseInt(prazoExtenso.split(' ')[0], 10);
+          } else if (prazoMeses) {
+            meses = parseInt(prazoMeses, 10);
+          }
+          
+          if (inicio && meses > 0) {
+            const d = new Date(inicio + 'T12:00:00Z');
+            d.setMonth(d.getMonth() + meses);
+            d.setDate(d.getDate() - 1); // Ex: Começa 01/06/2020, termina 31/05/2021
+            
+            const ano = d.getUTCFullYear();
+            const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const dia = String(d.getUTCDate()).padStart(2, '0');
+            const termino = `${ano}-${mes}-${dia}`;
+            
+            this.contract.fields['data_termino'] = termino;
+            const termEl = container.querySelector('[data-field="data_termino"]');
+            if (termEl) termEl.value = termino;
           }
         }
         
         this.updatePreview();
+        this.updateStatusBadge();
       });
     });
   },
@@ -259,26 +305,80 @@ const Editor = {
   generateTenantLink() {
     this.save(false);
     
-    // Create base64 payload
+    // Mudar o botão para estado de carregamento
+    const btn = document.querySelector('button[onclick="Editor.generateTenantLink()"]');
+    let originalHTML = '';
+    if (btn) {
+      originalHTML = btn.innerHTML;
+      btn.innerHTML = `<svg class="animate-spin" style="animation: spin 1s linear infinite; width:16px; height:16px; margin-right:5px; display:inline-block; vertical-align:middle;" fill="none" viewBox="0 0 24 24"><circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Gerando link seguro...`;
+      btn.disabled = true;
+    }
+    
     const payload = {
       t: this.contract.templateId,
-      f: this.contract.fields
+      f: this.contract.fields,
+      localId: this.contract.id
     };
     
-    // Encode properly avoiding unicode base64 issues
-    const str = JSON.stringify(payload);
-    const b64 = btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-        return String.fromCharCode('0x' + p1);
-    }));
+    const finalize = (serverId, key) => {
+      const baseUrl = window.location.href.split('#')[0];
+      const url = `${baseUrl}#tenant?id=${serverId}&key=${key}`;
+      
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Link SEGURO e CRIPTOGRAFADO copiado!\n\nEnvie este link no WhatsApp do Inquilino para ele preencher de forma segura.');
+      }).catch(err => {
+        alert('Link gerado! Copie a URL abaixo:\n\n' + url);
+      });
+      
+      if (btn) {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+      }
+    };
     
-    // Usa o endereço exato que está no navegador (funciona local ou hospedado)
-    const baseUrl = window.location.href.split('#')[0];
-    const url = baseUrl + '#tenant?data=' + b64;
-    
-    navigator.clipboard.writeText(url).then(() => {
-      alert('Link copiado para a área de transferência!\n\nEnvie este link no WhatsApp do Inquilino para ele preencher.');
-    }).catch(err => {
-      alert('Não foi possível copiar o link automaticamente. Copie a URL abaixo:\n\n' + url);
-    });
+    if (this.contract.cloudId && this.contract.cloudKey) {
+      // Se já existe no servidor, atualiza e copia o link
+      CloudDB.updateContract(this.contract.cloudId, payload, this.contract.cloudKey)
+        .then(() => {
+          finalize(this.contract.cloudId, this.contract.cloudKey);
+        })
+        .catch(err => {
+          alert('Erro ao atualizar contrato no servidor: ' + err.message);
+          if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+          }
+        });
+    } else {
+      // Se é novo, gera chave, salva e cria ID
+      const key = CloudDB.generateKey();
+      CloudDB.saveContract(payload, key)
+        .then(serverId => {
+          this.contract.cloudId = serverId;
+          this.contract.cloudKey = key;
+          // Salva as chaves de nuvem no localStorage do locador
+          Storage.update(this.contract.id, {
+            cloudId: serverId,
+            cloudKey: key
+          });
+          finalize(serverId, key);
+        })
+        .catch(err => {
+          alert('Erro ao salvar contrato seguro no servidor: ' + err.message);
+          if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+          }
+        });
+    }
+  },
+
+  updateStatusBadge() {
+    const badge = document.getElementById('editor-contract-status');
+    if (badge) {
+      const status = Utils.getContractStatus(this.contract);
+      badge.className = `badge-status ${status.class}`;
+      badge.textContent = status.label;
+    }
   }
 };

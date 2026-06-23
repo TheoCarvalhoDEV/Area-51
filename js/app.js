@@ -28,6 +28,56 @@ const App = {
     
     // Rota Especial de Importação do Inquilino
     if (path === '#import') {
+      const urlParams = new URLSearchParams(param);
+      const serverId = urlParams.get('id');
+      const key = urlParams.get('key');
+      
+      if (serverId && key) {
+        this.container.innerHTML = `
+          <div style="text-align: center; padding: 5rem 0;">
+            <div class="spinner" style="border: 4px solid var(--border); border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem;"></div>
+            <h3>Buscando e importando contrato de forma segura da nuvem...</h3>
+          </div>
+          <style>
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          </style>
+        `;
+        
+        CloudDB.loadContract(serverId, key).then(payload => {
+          const localContracts = Storage.getAll();
+          const existing = localContracts.find(c => c.cloudId === serverId);
+          
+          let localId;
+          if (existing) {
+            // Atualiza contrato existente
+            const updated = Storage.update(existing.id, {
+              fields: payload.f,
+              isFinalized: true
+            });
+            localId = updated.id;
+          } else {
+            // Cria um novo contrato importado
+            const newContract = Storage.create({
+              name: 'Contrato Importado - ' + (payload.f.nome_locatario || 'Inquilino'),
+              templateId: payload.t,
+              fields: payload.f,
+              cloudId: serverId,
+              cloudKey: key,
+              isFinalized: true
+            });
+            localId = newContract.id;
+          }
+          
+          alert('Contrato importado com sucesso e salvo no seu painel!');
+          window.location.hash = `#editor?id=${localId}`;
+        }).catch(err => {
+          alert('Erro ao importar contrato seguro da nuvem: ' + err.message);
+          window.location.hash = '#dashboard';
+        });
+        return; // Interrompe a execução normal de roteamento
+      }
+      
+      // Fallback para o antigo formato base64 em URL
       try {
         const b64 = param.split('=')[1];
         const str = decodeURIComponent(Array.prototype.map.call(atob(b64), function(c) {

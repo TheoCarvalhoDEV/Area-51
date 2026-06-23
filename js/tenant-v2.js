@@ -7,36 +7,87 @@ const Tenant = {
   template: null,
   
   render(container, param) {
-    if (!param || !param.startsWith('data=')) {
+    if (!param) {
       container.innerHTML = '<h3 style="text-align:center; padding:3rem;">Link inválido ou expirado.</h3>';
       return;
     }
     
-    let tId = '';
-    try {
-      const b64 = param.split('=')[1];
-      const str = decodeURIComponent(Array.prototype.map.call(atob(b64), function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const payload = JSON.parse(str);
+    if (param.startsWith('id=')) {
+      // Novo link seguro na nuvem
+      const urlParams = new URLSearchParams(param);
+      const serverId = urlParams.get('id');
+      const key = urlParams.get('key');
       
-      tId = payload.t;
-      this.contract = {
-        templateId: payload.t,
-        fields: payload.f
-      };
-      
-      this.template = Contracts[payload.t] || (Storage._getData().customTemplates || []).find(t => t.id === payload.t);
-      if (!this.template) {
-        container.innerHTML = '<h3 style="text-align:center; padding:3rem;">Link inválido ou expirado. Modelo não encontrado.</h3>';
+      if (!serverId || !key) {
+        container.innerHTML = '<h3 style="text-align:center; padding:3rem;">Link incompleto ou inválido.</h3>';
         return;
       }
       
-    } catch (e) {
-      container.innerHTML = '<h3 style="color:red; text-align:center; padding: 3rem;">Erro ao ler o link do contrato.</h3>';
+      container.innerHTML = `
+        <div style="text-align: center; padding: 5rem 0;">
+          <div class="spinner" style="border: 4px solid var(--border); border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem;"></div>
+          <h3>Buscando contrato com segurança no servidor...</h3>
+        </div>
+        <style>
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
+      `;
+      
+      CloudDB.loadContract(serverId, key).then(payload => {
+        this.contract = {
+          templateId: payload.t,
+          fields: payload.f,
+          cloudId: serverId,
+          cloudKey: key,
+          localId: payload.localId
+        };
+        
+        this.template = Contracts[payload.t] || (Storage._getData().customTemplates || []).find(t => t.id === payload.t);
+        if (!this.template) {
+          container.innerHTML = '<h3 style="text-align:center; padding:3rem;">Link inválido. Modelo de contrato não encontrado.</h3>';
+          return;
+        }
+        
+        this.renderTenantUI(container);
+      }).catch(err => {
+        console.error(err);
+        container.innerHTML = `<h3 style="color:red; text-align:center; padding: 3rem;">Erro ao carregar o contrato com segurança: ${err.message}</h3>`;
+      });
       return;
     }
+    
+    if (param.startsWith('data=')) {
+      // Legado Base64
+      let tId = '';
+      try {
+        const b64 = param.split('=')[1];
+        const str = decodeURIComponent(Array.prototype.map.call(atob(b64), function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const payload = JSON.parse(str);
+        
+        tId = payload.t;
+        this.contract = {
+          templateId: payload.t,
+          fields: payload.f
+        };
+        
+        this.template = Contracts[payload.t] || (Storage._getData().customTemplates || []).find(t => t.id === payload.t);
+        if (!this.template) {
+          container.innerHTML = '<h3 style="text-align:center; padding:3rem;">Link inválido ou expirado. Modelo não encontrado.</h3>';
+          return;
+        }
+        
+      } catch (e) {
+        container.innerHTML = '<h3 style="color:red; text-align:center; padding: 3rem;">Erro ao ler o link do contrato.</h3>';
+        return;
+      }
+      
+      this.renderTenantUI(container);
+    }
+  },
 
+  renderTenantUI(container) {
     container.innerHTML = `
       <div class="tenant-container animate-fade-in-up">
         <div class="tenant-header">
@@ -196,43 +247,17 @@ const Tenant = {
       }
     }
 
-    // Create base64 payload for import
-    const payload = {
-      t: this.contract.templateId,
-      f: this.contract.fields
-    };
-    const str = JSON.stringify(payload);
-    const b64 = btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-        return String.fromCharCode('0x' + p1);
-    }));
-    
-    // Import link that goes back to the admin's app
-    const importUrl = window.location.origin + window.location.pathname + '#import?data=' + b64;
-    const waText = encodeURIComponent("Olá! Preenchi os meus dados no contrato. Segue o link para você importar no painel:\n\n" + importUrl);
-    const waUrl = "https://wa.me/?text=" + waText;
-
-    // Se estiver testando no mesmo computador, já salva direto no dashboard (localStorage)
-    if (typeof Storage !== 'undefined') {
-      try {
-        Storage.create({
-          name: 'Contrato Finalizado - ' + (this.contract.fields.nome_locatario || 'Inquilino'),
-          templateId: this.contract.templateId,
-          fields: this.contract.fields,
-          isFinalized: true
-        });
-      } catch(e) {}
-    }
-
-    const formContainer = document.getElementById('tenant-form-container');
-    if (formContainer) {
-      formContainer.innerHTML = `
-        <div style="text-align: center; padding: 2rem 0;">
-          <svg fill="none" stroke="var(--success)" viewBox="0 0 24 24" style="width:64px; height:64px; margin-bottom: 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <h2 style="color: var(--success); margin-bottom: 0.5rem;">Dados Preenchidos!</h2>
-          <p style="color: var(--text-muted); margin-bottom: 2rem;">Agora, você precisa enviar estes dados de volta para o Locador.</p>
-          
-          <a href="${waUrl}" target="_blank" class="btn btn-primary" style="width: 100%; justify-content: center; background: #25D366; border: none; padding: 1.2rem; font-size: 1.1rem; margin-bottom: 1rem;">
-            <svg fill="currentColor" viewBox="0 0 24 24" style="width: 24px; margin-right: 8px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    const saveFinishedUI = (waUrl) => {
+      const formContainer = document.getElementById('tenant-form-container');
+      if (formContainer) {
+        formContainer.innerHTML = `
+          <div style="text-align: center; padding: 2rem 0;">
+            <svg fill="none" stroke="var(--success)" viewBox="0 0 24 24" style="width:64px; height:64px; margin-bottom: 1rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h2 style="color: var(--success); margin-bottom: 0.5rem;">Dados Preenchidos!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Agora, você precisa enviar estes dados de volta para o Locador.</p>
+            
+            <a href="${waUrl}" target="_blank" class="btn btn-primary" style="width: 100%; justify-content: center; background: #25D366; border: none; padding: 1.2rem; font-size: 1.1rem; margin-bottom: 1rem;">
+              <svg fill="currentColor" viewBox="0 0 24 24" style="width: 24px; margin-right: 8px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
             Enviar para Locador
           </a>
           
@@ -241,13 +266,72 @@ const Tenant = {
           </button>
         </div>
       `;
+      
+      const submitBtn = document.getElementById('btn_salvar_inquilino');
+      if (submitBtn) submitBtn.style.display = 'none';
+      const aceitoContainer = document.getElementById('aceito_contrato')?.parentElement;
+      if (aceitoContainer) aceitoContainer.style.display = 'none';
+    };
+
+    if (this.contract.cloudId && this.contract.cloudKey) {
+      // Modo seguro na nuvem
+      const saveBtn = document.getElementById('btn_salvar_inquilino');
+      const originalHTML = saveBtn ? saveBtn.innerHTML : '';
+      if (saveBtn) {
+        saveBtn.innerHTML = `Salvando com segurança...`;
+        saveBtn.disabled = true;
+      }
+
+      const payload = {
+        t: this.contract.templateId,
+        f: this.contract.fields,
+        localId: this.contract.localId,
+        isFinalized: true
+      };
+
+      CloudDB.updateContract(this.contract.cloudId, payload, this.contract.cloudKey).then(() => {
+        const importUrl = window.location.origin + window.location.pathname + '#import?id=' + this.contract.cloudId + '&key=' + this.contract.cloudKey;
+        const waText = encodeURIComponent("Olá! Preenchi os meus dados no contrato com segurança. Segue o link para você visualizar/importar no seu painel:\n\n" + importUrl);
+        const waUrl = "https://wa.me/?text=" + waText;
+        
+        saveFinishedUI(waUrl);
+      }).catch(err => {
+        alert("Erro ao salvar dados no servidor seguro: " + err.message);
+        if (saveBtn) {
+          saveBtn.innerHTML = originalHTML;
+          saveBtn.disabled = false;
+        }
+      });
+
+    } else {
+      // Modo legado Base64
+      const payload = {
+        t: this.contract.templateId,
+        f: this.contract.fields
+      };
+      const str = JSON.stringify(payload);
+      const b64 = btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+          return String.fromCharCode('0x' + p1);
+      }));
+      
+      const importUrl = window.location.origin + window.location.pathname + '#import?data=' + b64;
+      const waText = encodeURIComponent("Olá! Preenchi os meus dados no contrato. Segue o link para você importar no painel:\n\n" + importUrl);
+      const waUrl = "https://wa.me/?text=" + waText;
+      
+      // Se estiver testando no mesmo computador, já salva direto no dashboard (localStorage)
+      if (typeof Storage !== 'undefined') {
+        try {
+          Storage.create({
+            name: 'Contrato Finalizado - ' + (this.contract.fields.nome_locatario || 'Inquilino'),
+            templateId: this.contract.templateId,
+            fields: this.contract.fields,
+            isFinalized: true
+          });
+        } catch(e) {}
+      }
+      
+      saveFinishedUI(waUrl);
     }
-    
-    // Hide original main submit button and checkbox
-    const submitBtn = document.getElementById('btn_salvar_inquilino');
-    if (submitBtn) submitBtn.style.display = 'none';
-    const aceitoContainer = document.getElementById('aceito_contrato')?.parentElement;
-    if (aceitoContainer) aceitoContainer.style.display = 'none';
   },
 
   downloadPDF() {
