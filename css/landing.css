@@ -198,6 +198,8 @@
 .lp-mini-name { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lp-mini-bar { height: 4px; border-radius: 2px; background: var(--border); margin-top: 4px; overflow: hidden; }
 .lp-mini-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), #3b82f6); }
+.lp-bar-w60 { width: 60%; }
+.lp-bar-w90 { width: 90%; }
 
 .lp-icons { display: flex; gap: 0.55rem; }
 .lp-icons span {
