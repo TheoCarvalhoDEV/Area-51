@@ -32,7 +32,9 @@ const Api = {
       // Falha de rede é diferente de recusa do servidor, e quem chama precisa
       // distinguir: o editor descarta o link do inquilino quando o servidor o
       // recusa, e não pode descartar um link vivo só porque a conexão caiu.
-      const erro = new Error('Não foi possível falar com o servidor. Verifique a conexão e tente de novo.');
+      const erro = new Error(location.protocol === 'file:'
+        ? 'Página aberta direto do disco. Rode "npm start" e acesse http://localhost:3000.'
+        : 'Não foi possível falar com o servidor. Verifique a conexão e tente de novo.');
       erro.transporte = true;
       throw erro;
     }
