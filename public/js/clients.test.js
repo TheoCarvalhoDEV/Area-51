@@ -29,10 +29,21 @@ Storage.clientsCache = [{
 }];
 // O contrato guarda o CPF FORMATADO e o cadastro guarda só dígitos: o vínculo
 // tem que casar mesmo assim, senão o painel diz "nenhum contrato" com contrato.
+// `doc_locatario` é o campo que os modelos gravam (public/data/contracts.js);
+// o teste usava `cpf_locatario`, que modelo nenhum tem — e passava assim mesmo.
 Storage.contractsCache = [
-  { id: 'c1', name: 'Locação casa 4', fields: { cpf_locatario: '022.997.281-04', nome_locatario: 'Allano', data_inicio: emDias(-10), data_termino: emDias(300) } },
-  { id: 'c2', name: 'De outra pessoa', fields: { cpf_locatario: '111.444.777-35', nome_locatario: 'Outra' } },
+  { id: 'c1', name: 'Locação casa 4', fields: { doc_locatario: '022.997.281-04', nome_locatario: 'Allano', data_inicio: emDias(-10), data_termino: emDias(300) } },
+  { id: 'c2', name: 'De outra pessoa', fields: { doc_locatario: '111.444.777-35', nome_locatario: 'Outra' } },
 ];
+
+// O nome do campo vem dos modelos, não de memória: se um modelo renomear o
+// campo do documento do locatário, este teste tem de quebrar junto.
+const Modelos = new Function(fs.readFileSync(path.join(__dirname, '..', 'data', 'contracts.js'), 'utf8') +
+  '; return Contracts;')();
+for (const m of Object.values(Modelos)) {
+  assert.ok(m.fields.some(f => f.name === 'doc_locatario'),
+    `modelo ${m.id}: o vínculo cliente/contrato lê doc_locatario, e o modelo não tem esse campo`);
+}
 
 const painel = ClientsView.detalhe('cl1');
 

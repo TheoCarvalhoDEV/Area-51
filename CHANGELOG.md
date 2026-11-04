@@ -12,6 +12,12 @@ Registro de todas as alterações do sistema, para o time ter uma referência ú
 
 ---
 
+## 2026-11-04 — painel do cliente volta a listar os contratos
+
+- **Fix:** o painel do cliente nunca listava os contratos dele — `contratosDe` lia `cpf_locatario`, campo que nenhum modelo tem (o certo é `doc_locatario`). Com isso a pergunta "posso excluir este cliente?" sempre respondia "sem contrato". O teste usava o mesmo nome errado e passava; agora confere o nome do campo contra os próprios modelos.
+
+---
+
 ## 2026-11-04 — Render e Vercel descartados
 
 Decisão do dono do projeto: **não vamos usar Render nem Vercel.** `render.yaml` saiu (a Vercel já tinha saído em 26/08). O `Dockerfile` fica como ponto de partida genérico para qualquer host com disco persistente; comentários e docs que apontavam o Render como destino foram neutralizados. Hospedagem segue em aberto.
@@ -32,7 +38,7 @@ Assets e projeto: 2.3.0 → **2.4.0**. Varredura feita com o agente `dead-code-f
 
 ---
 
-## 2026-11-04 — código feito à mão trocado por bibliotecas (sem commit ainda)
+## 2026-11-04 — código feito à mão trocado por bibliotecas (aa68937)
 
 Varredura por funções que bibliotecas consolidadas resolvem melhor. Só entrou troca com defeito real por trás; justificativas em `docs/ARQUITETURA.md` R1.
 
