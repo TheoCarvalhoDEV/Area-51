@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-// AuthUI - Interface e controle de Autenticação Supabase
+// AuthUI - telas de login e cadastro
 // Layout split-screen (design "Login Meus Imóveis")
 // ═══════════════════════════════════════════════════════
 
@@ -30,11 +30,12 @@ const AuthUI = {
       <div class="auth-brand-foot">© 2026 Meus Imóveis</div>
     </div>`,
 
-  // newPw=true → senha sendo criada (cadastro/redefinição): exige a política do Supabase.
+  // newPw=true → senha sendo criada (cadastro): mínimo de 8, o MESMO que o
+  // servidor cobra (MIN_SENHA em server/rotas/auth.js) — a tela só adianta o aviso.
   // No login (newPw falso) NÃO restringe, senão usuários antigos com senha curta travam.
   pwField(id, newPw) {
     const attrs = newPw ? 'required minlength="8" placeholder="Mín. 8 caracteres"' : 'required placeholder="Sua senha"';
-    const hint = newPw ? '<small class="auth-pw-hint">8+ caracteres, com maiúscula, minúscula, número e símbolo.</small>' : '';
+    const hint = newPw ? '<small class="auth-pw-hint">Mínimo de 8 caracteres.</small>' : '';
     return `
       <label class="auth-label">
         <span>SENHA</span>
@@ -404,34 +405,12 @@ const AuthUI = {
     if (msg.includes('Invalid login credentials')) {
       return 'E-mail ou senha incorretos. Verifique e tente novamente.';
     }
-    if (msg.includes('signup is disabled') || msg.includes('Signups not allowed')) {
-      return 'O cadastro de novos usuários está desativado para este projeto.';
-    }
-    if (msg.includes('Password should') || /weak.?password/i.test(msg)) {
-      return 'Senha fraca. Use no mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo.';
-    }
-    if (msg.includes('confirm your email') || msg.includes('Email not confirmed')) {
-      return 'Por favor, confirme seu endereço de e-mail antes de fazer login.';
-    }
-    if (msg.includes('Email address') && msg.includes('invalid')) {
-      return 'O endereço de e-mail inserido é inválido ou não é aceito.';
-    }
-    if (msg.includes('rate limit exceeded')) {
-      return 'Limite de envios de e-mail excedido. Aguarde alguns minutos ou desative a "Confirmação de E-mail" no painel do Supabase.';
-    }
-    if (msg.includes('should be different')) {
-      return 'A nova senha precisa ser diferente da senha atual.';
-    }
-    if (msg.includes('Auth session missing')) {
-      return 'Link inválido ou expirado.';
-    }
-
-    return msg; // Retorna mensagem nativa se não mapeada
+    // O resto das mensagens do servidor (server/rotas/auth.js) já vem em português.
+    return msg;
   },
 
   logout() {
     // Sem reload: o Api.sair avisa os ouvintes e o App re-renderiza sozinho.
-    // O reload existia porque era o jeito de zerar o estado do SDK da Supabase.
     Api.sair()
       .then(() => { window.location.hash = '#'; })
       .catch(err => console.error('Erro ao deslogar:', err));

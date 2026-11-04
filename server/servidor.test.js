@@ -87,6 +87,8 @@ test('e-mail duplicado e recusado', async () => {
 test('senha curta e e-mail invalido sao recusados no SERVIDOR', async () => {
   const c = cliente();
   assert.strictEqual((await c('POST', '/api/auth/registrar', { email: 'x@y.com', senha: '123' })).status, 400);
+  // 7 caracteres: a tela pede 8, e o servidor tem de cobrar o mesmo.
+  assert.strictEqual((await c('POST', '/api/auth/registrar', { email: 'x@y.com', senha: '1234567' })).status, 400);
   assert.strictEqual((await c('POST', '/api/auth/registrar', { email: 'semarroba', senha: 'segredo123' })).status, 400);
 });
 
@@ -110,7 +112,21 @@ test('a senha nao e guardada em claro, e o salt difere entre contas', () => {
   // Mesma senha em contas diferentes tem de produzir hash diferente — e o que
   // impede descobrir, olhando a tabela, que duas pessoas usam a mesma senha.
   const { criarSenha } = require('./sessao');
-  assert.notStrictEqual(criarSenha('igual').senha_hash, criarSenha('igual').senha_hash);
+  return Promise.all([criarSenha('igual'), criarSenha('igual')]).then(([x, y]) =>
+    assert.notStrictEqual(x.senha_hash, y.senha_hash));
+});
+
+test('o hash de senha NAO congela o servidor', async () => {
+  // Com `scryptSync`, cada login segurava o event loop ~100ms: quatro tentativas
+  // simultaneas faziam QUALQUER outra requisicao esperar todas elas. Com o hash
+  // no threadpool, uma rota leve responde antes de qualquer login terminar.
+  const ordem = [];
+  const logins = [1, 2, 3, 4].map(i =>
+    cliente()('POST', '/api/auth/entrar', { email: `lento${i}@teste.com`, senha: 'qualquer1' })
+      .then(() => ordem.push('login')));
+  await anon('GET', '/api/auth/sessao').then(() => ordem.push('sessao'));
+  await Promise.all(logins);
+  assert.strictEqual(ordem[0], 'sessao', 'a rota leve nao esperou o hash dos logins');
 });
 
 // ── Sessao ──────────────────────────────────────────────────────────────
@@ -320,6 +336,36 @@ test('a evidencia do aceite e carimbada pelo SERVIDOR', async () => {
   // quem assina nao redige.
 });
 
+test('o IP da evidencia NAO pode ser forjado pelo inquilino', async () => {
+  // O inquilino controla os cabecalhos da propria requisicao. Se o servidor
+  // lesse o primeiro item do X-Forwarded-For, ele escreveria o IP que quisesse
+  // na unica parte da trilha que deveria ser do servidor.
+  const { db } = require('./db');
+  const finalizar = async (id, xff) => {
+    await A('POST', '/api/links', { id, payload: 'x', key_proof: PROVA });
+    await fetch(`${base}/api/links/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': xff },
+      body: JSON.stringify({ payload: 'assinado', key_proof: PROVA, finalize: true })
+    });
+    return db.prepare('select finalized_ip from tenant_links where id = ?').get(id).finalized_ip;
+  };
+
+  // Sem proxy declarado (rodando local): o cabecalho e ignorado por inteiro.
+  const local = await finalizar('ip-local', '6.6.6.6');
+  assert.notStrictEqual(local, '6.6.6.6');
+  assert.match(local, /127\.0\.0\.1|::1/);
+
+  // Atras de UM proxy (TRUST_PROXY=1, o Render): vale o item que o proxy
+  // acrescentou na ponta direita, nunca o que o cliente mandou na esquerda.
+  app.set('trust proxy', 1);
+  try {
+    assert.strictEqual(await finalizar('ip-proxy', '6.6.6.6, 1.2.3.4'), '1.2.3.4');
+  } finally {
+    app.set('trust proxy', false);
+  }
+});
+
 test('link inexistente e link expirado dao 404', async () => {
   assert.strictEqual((await anon('GET', '/api/links/nao-existe')).status, 404);
 
@@ -437,4 +483,157 @@ test('o front e servido e vem com os cabecalhos de seguranca', async () => {
   assert.strictEqual(r.headers.get('x-frame-options'), 'DENY');
   assert.strictEqual(r.headers.get('x-content-type-options'), 'nosniff');
   assert.ok((await r.text()).includes('MEUS IMÓVEIS APP'));
+});
+
+// ── Imagens fora da listagem ────────────────────────────────────────────
+
+const ASSIN = 'data:image/png;base64,QVNTSU5BVFVSQQ==';
+const SELFIE = 'data:image/jpeg;base64,U0VMRklF';
+
+test('a listagem vem sem imagens, marcada; o GET de um vem inteiro', async () => {
+  await A('PUT', '/api/contracts/c-midia', {
+    id: 'c-midia', name: 'Com assinatura', template_id: 'locacao_residencial',
+    fields: { nome_locatario: 'Ana', valor_aluguel: 'R$ 1.000,00',
+      assinatura_locador: ASSIN, assinatura_locatario: ASSIN, selfie_locatario: SELFIE }
+  });
+
+  const lista = (await A('GET', '/api/contracts')).dados.find(c => c.id === 'c-midia');
+  assert.strictEqual(lista.fields.nome_locatario, 'Ana', 'o texto continua na lista');
+  assert.ok(!JSON.stringify(lista.fields).includes('data:'), 'nenhuma imagem na lista');
+  assert.strictEqual(lista.fields._midia_omitida, true, 'a lista diz que omitiu');
+
+  const um = await A('GET', '/api/contracts/c-midia');
+  assert.strictEqual(um.dados.fields.selfie_locatario, SELFIE);
+  assert.ok(!('_midia_omitida' in um.dados.fields));
+
+  // O GET de um respeita o escopo como o resto: outra conta recebe 404.
+  assert.strictEqual((await B('GET', '/api/contracts/c-midia')).status, 404);
+});
+
+test('regravar a partir da lista NAO apaga as assinaturas', async () => {
+  // O caso real: o reajuste faz `{...contract.fields, valor_aluguel: novo}` em
+  // cima do contrato da lista. A marca vai junto na copia.
+  const lista = (await A('GET', '/api/contracts')).dados.find(c => c.id === 'c-midia');
+  await A('PUT', '/api/contracts/c-midia', {
+    name: lista.name, template_id: lista.template_id,
+    fields: { ...lista.fields, valor_aluguel: 'R$ 1.100,00' }
+  });
+
+  const f = (await A('GET', '/api/contracts/c-midia')).dados.fields;
+  assert.strictEqual(f.valor_aluguel, 'R$ 1.100,00', 'a alteracao entrou');
+  assert.strictEqual(f.assinatura_locador, ASSIN, 'assinatura do locador preservada');
+  assert.strictEqual(f.selfie_locatario, SELFIE, 'selfie preservada');
+  assert.ok(!('_midia_omitida' in f), 'a marca nunca e gravada');
+});
+
+test('o que chega vence: imagem nova substitui, gravacao inteira apaga', async () => {
+  // Importacao: contrato da lista + assinatura nova do inquilino.
+  const lista = (await A('GET', '/api/contracts')).dados.find(c => c.id === 'c-midia');
+  const NOVA = 'data:image/png;base64,Tk9WQQ==';
+  // Como o Storage.update do front: name e template_id vao sempre.
+  const base = { name: lista.name, template_id: lista.template_id };
+  await A('PUT', '/api/contracts/c-midia', { ...base, fields: { ...lista.fields, assinatura_locatario: NOVA } });
+  let f = (await A('GET', '/api/contracts/c-midia')).dados.fields;
+  assert.strictEqual(f.assinatura_locatario, NOVA, 'a do inquilino e a nova');
+  assert.strictEqual(f.assinatura_locador, ASSIN, 'a do locador continua');
+
+  // Editor (contrato inteiro, SEM marca) limpando a assinatura do locador:
+  // a remocao tem de valer — nao pode ressuscitar.
+  const { assinatura_locador, ...semAssinatura } = f;
+  await A('PUT', '/api/contracts/c-midia', { ...base, fields: semAssinatura });
+  f = (await A('GET', '/api/contracts/c-midia')).dados.fields;
+  assert.ok(!('assinatura_locador' in f), 'remocao deliberada respeitada');
+  assert.strictEqual(f.selfie_locatario, SELFIE);
+});
+
+test('admin nao recebe assinaturas nem selfies de outras contas', async () => {
+  const r = await A('GET', '/api/admin/contracts');
+  assert.ok(r.dados.some(c => c.id === 'c-midia'));
+  assert.ok(!JSON.stringify(r.dados).includes('data:'), 'nenhuma imagem na supervisao');
+});
+
+// ── Migrations e backup ─────────────────────────────────────────────────
+
+test('o banco do app sobe na ultima versao das migrations', () => {
+  const { db, MIGRACOES } = require('./db');
+  assert.strictEqual(db.prepare('pragma user_version').get().user_version, MIGRACOES.length);
+});
+
+test('migrations: aplicam em ordem, e a que falha e desfeita inteira', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const { migrar } = require('./db');
+  const banco = new DatabaseSync(':memory:');
+  const versao = () => banco.prepare('pragma user_version').get().user_version;
+
+  const lista = ['create table t (a text)', 'alter table t add column b text'];
+  let backups = 0;
+  assert.strictEqual(migrar(banco, lista, () => backups++), 2);
+  assert.strictEqual(backups, 1, 'o gancho do backup roda antes de migrar');
+
+  // Rodar de novo sem nada pendente: nao toca o banco nem chama o backup.
+  migrar(banco, lista, () => backups++);
+  assert.strictEqual(backups, 1);
+
+  // A terceira cria uma tabela e depois quebra: nada dela pode ficar.
+  const quebrada = [...lista, 'create table parcial (x); isto nao e sql'];
+  assert.throws(() => migrar(banco, quebrada), /Migration 3 falhou/);
+  assert.strictEqual(versao(), 2, 'versao nao avanca');
+  assert.strictEqual(
+    banco.prepare("select count(*) n from sqlite_master where name = 'parcial'").get().n, 0,
+    'o que a migration fez antes de quebrar foi desfeito');
+
+  // Codigo antigo num banco mais novo: recusa ligar em vez de gravar errado.
+  assert.throws(() => migrar(banco, lista.slice(0, 1)), /conhece/);
+});
+
+test('backup diario: gera um banco legivel, um por dia, guarda so os ultimos', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const { db, backupDiario } = require('./db');
+  const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'mi-bkp-'));
+  try {
+    // Backups "antigos" de dias anteriores, para a faxina ter o que apagar.
+    for (let d = 1; d <= 8; d++) {
+      fs.writeFileSync(path.join(pasta, `data-2020-01-${String(d).padStart(2, '0')}.db`), '');
+    }
+    fs.writeFileSync(path.join(pasta, 'data-antes-v2-123.db'), '');
+
+    const feito = backupDiario(db, pasta, 3);
+    assert.ok(feito, 'o backup de hoje foi criado');
+    assert.strictEqual(backupDiario(db, pasta, 3), null, 'segunda chamada no mesmo dia nao copia de novo');
+
+    // O arquivo e um banco completo, com os dados de verdade.
+    const copia = new DatabaseSync(feito);
+    assert.ok(copia.prepare('select count(*) n from users').get().n > 0);
+    copia.close();
+
+    const restantes = fs.readdirSync(pasta).sort();
+    assert.strictEqual(restantes.filter(f => /^data-\d{4}/.test(f)).length, 3, 'so os 3 mais recentes');
+    assert.ok(restantes.includes(path.basename(feito)), 'o de hoje sobrevive a faxina');
+    assert.ok(restantes.includes('data-antes-v2-123.db'), 'backup de antes de migration nunca e apagado pela faxina');
+  } finally {
+    fs.rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+// ── Limite de tentativas ────────────────────────────────────────────────
+// Por ULTIMO no arquivo de proposito: as falhas tambem contam para o IP do
+// teste (127.0.0.1), e nenhum teste depois deste pode depender de login.
+
+test('login trava depois de 10 senhas erradas -- ate com a senha certa', async () => {
+  const c = cliente();
+  await c('POST', '/api/auth/registrar', { email: 'alvo@teste.com', senha: 'certa1234' });
+
+  for (let i = 0; i < 10; i++) {
+    const r = await anon('POST', '/api/auth/entrar', { email: 'alvo@teste.com', senha: 'chute' + i });
+    assert.strictEqual(r.status, 401);
+  }
+
+  // A senha certa tambem e recusada: se passasse, o atacante saberia que
+  // acertou justamente pela diferenca de resposta.
+  const travado = await anon('POST', '/api/auth/entrar', { email: 'alvo@teste.com', senha: 'certa1234' });
+  assert.strictEqual(travado.status, 429);
+
+  // E a trava e do e-mail atacado, nao do sistema: outra conta entra normal.
+  const outra = await cliente()('POST', '/api/auth/entrar', { email: 'b@teste.com', senha: 'segredo456' });
+  assert.strictEqual(outra.status, 200);
 });

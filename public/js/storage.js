@@ -1,10 +1,10 @@
 // ═══════════════════════════════════════════════════════
-// Storage — contratos e perfil do locador (Supabase)
+// Storage — cache em memória + escrita no servidor (via Api)
 // ═══════════════════════════════════════════════════════
 
 const Storage = {
-  // O perfil digitado no cadastro fica aqui até existir sessão: com confirmação de
-  // e-mail pendente não há auth.uid(), e o RLS barra a escrita em profiles.
+  // O perfil digitado no cadastro fica aqui até existir sessão: a gravação em
+  // /api/perfil exige login, e o cadastro grava o perfil antes da resposta dele.
   PENDING_PROFILE_KEY: 'perfil_pendente',
 
   contractsCache: [],
@@ -78,9 +78,6 @@ const Storage = {
       this.clientsCache = clients || [];
       this.financialRecordsCache = fin || [];
       this.inspectionsCache = insp || [];
-      // A tabela nasce com o banco agora, entao nunca falta. A bandeira fica
-      // porque `vistorias.js` a le — e este trabalho nao toca as telas.
-      this.inspectionsDisponivel = true;
 
       this.profileCache = (await Api.lerPerfil()) || {};
     } catch (e) {
@@ -112,6 +109,29 @@ const Storage = {
   },
 
   // ── Contratos ──
+
+  // A listagem do servidor vem SEM assinaturas e selfie (marcada com
+  // `_midia_omitida`): o login não baixa ~100 KB de imagem por contrato. Quem
+  // precisa das imagens — o editor — chama isto antes de abrir.
+  //
+  // O cache vence; o servidor só preenche as imagens ausentes. Substituir pelo
+  // que veio do servidor perderia uma gravação ainda a caminho (a importação
+  // grava e abre o editor no mesmo instante, e a leitura pode chegar antes).
+  // É a mesma regra do `repoeMidia` do servidor.
+  async carregarCompleto(id) {
+    const c = this.getById(id);
+    if (!c || !c.fields || !c.fields._midia_omitida) return c;
+
+    const completo = await Api.get('contracts', id);
+    const f = { ...c.fields };
+    delete f._midia_omitida;
+    Object.entries((completo && completo.fields) || {}).forEach(([k, v]) => {
+      if (!(k in f) && typeof v === 'string' && /^\s*data:/i.test(v)) f[k] = v;
+    });
+    c.fields = f;
+    return c;
+  },
+
   getAll() {
     return this.contractsCache.slice().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   },
@@ -331,7 +351,7 @@ const Storage = {
     }
   },
 
-  // ── Vistorias (migration 004) ────────────────────────────────────────
+  // ── Vistorias ─────────────────────────────────────────────────────────
   getInspections() {
     return (this.inspectionsCache || []).slice()
       .sort((a, b) => String(b.inspected_on || '').localeCompare(String(a.inspected_on || '')));

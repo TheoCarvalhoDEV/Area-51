@@ -78,9 +78,9 @@ graph TB
 
 ---
 
-## 2. Fluxo do Inquilino & Criptografia Ponta a Ponta
+## 2. Fluxo do Inquilino & Criptografia do Link
 
-Este é o fluxo mais crítico do sistema: o contrato é protegido de modo que o servidor armazena os dados cifrados sem conhecer o conteúdo legível durante o trânsito do link.
+Este é o fluxo mais crítico do sistema: o servidor guarda o link cifrado sem conhecer o conteúdo. **Não é ponta a ponta:** a chave também fica gravada no contrato do locador (`cloud_key`), o que permite reabrir e regerar o link — a cifra protege contra a exposição isolada da tabela de links (ver README).
 
 ```mermaid
 sequenceDiagram

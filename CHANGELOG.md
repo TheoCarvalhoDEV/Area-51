@@ -12,6 +12,51 @@ Registro de todas as alterações do sistema, para o time ter uma referência ú
 
 ---
 
+## 2026-11-04 — imagens fora da listagem
+
+**O login deixou de baixar todas as assinaturas e selfies** (assets 2.0.2 → **2.0.3**). Elas moram em `contracts.fields` como data: URL, ~100 KB por contrato assinado, e `GET /api/contracts` trazia todas a cada login — embora só o editor as mostre. O admin baixava as de **todas as contas**.
+
+- A listagem vem sem imagens, marcada com `_midia_omitida`; nova rota `GET /api/:recurso/:id` (com escopo, 404 para outra conta) devolve o registro inteiro; o editor espera `Storage.carregarCompleto` antes de abrir.
+- **O risco era perder assinatura**: reajuste e importação copiam `fields` do contrato da lista e regravam. A marca viaja na cópia, e o servidor repõe as imagens guardadas em gravação marcada. Gravação sem marca (o editor) é inteira — limpar uma assinatura continua funcionando.
+- Corrida coberta: a importação grava e abre o editor no mesmo instante, e a leitura pode chegar antes da gravação. Por isso `carregarCompleto` não substitui o cache: só preenche as imagens ausentes.
+- Admin: `/api/admin/contracts` nunca mais devolve imagens — a ficha de suporte não as mostra, e o admin não tem por que receber a selfie de inquilino de outra conta.
+- 4 testes de backend + `midia.test.js` no front. **Pendente:** auditoria de runtime do editor e da importação no navegador (R8.5) — não feita nesta rodada.
+
+---
+
+## 2026-11-04 — limpeza
+
+**Restos da Supabase e código morto** (assets 2.0.1 → **2.0.2**). Nenhuma mudança de comportamento, exceto a primeira linha.
+
+- **Senha: a tela prometia uma regra que ninguém aplicava.** O cadastro anunciava "maiúscula, minúscula, número e símbolo" (a política da Supabase); a tela só cobrava 8 caracteres e o servidor aceitava 6. Agora os dois cobram 8 e o texto diz só isso. Teste novo: 7 caracteres é recusado pelo servidor.
+- `if (false)` em `app.js` saiu — chamava `AuthUI.renderNewPassword`, que nem existe mais. Saíram também a bandeira `inspectionsDisponivel` (ninguém lia), o aviso do superadmin que mandava "aplicar as migrations de supabase/migrations/" (a lista de usuários nunca vem vazia para um admin) e 7 traduções de erro de mensagens que só a Supabase mandava.
+- Comentários que apontavam para RPC, RLS, `auth.uid()` e `supabase/migrations/00x` reescritos para o que o código faz hoje (`storage`, `auth`, `admin`, `superadmin`, `database`, `utils`, `renovacoes`). Os do servidor que explicam *o que substituíram* ficaram: são o porquê, não ficção.
+- `arquitetura_sistema.md` → **`docs/DIAGRAMAS.md`**, linkado da ARQUITETURA. O título dizia "criptografia ponta a ponta", e não é (a `cloud_key` fica no contrato) — corrigido, alinhado ao README.
+- `reparo-contrato-copia.js` apagado: reparo de uso único do bug de 27/08, já corrigido; links daquela época já expiraram. Fica no histórico do git.
+- README: saiu "redefinição de senha por e-mail" (não existe desde 26/08).
+
+---
+
+## 2026-11-04 — migrations e backup
+
+**O banco passou a ter migrations e backup** — o prazo que a R4.2 dava a si mesma ("antes do primeiro deploy com dado real") chegou com o `render.yaml` de `c705b9f`.
+
+- **Migrations** pela lista `MIGRACOES` em `server/db.js`, versão no `pragma user_version` nativo do SQLite (sem tabela de controle). Cada uma numa transação com o bump: a que falha é desfeita inteira e o servidor não liga. Banco mais novo que o código (deploy revertido) também não liga. A 1 é o baseline de 26/08, idempotente para os bancos que já existiam — conferido subindo o servidor sobre uma cópia do banco local (versão 0 → 1, dados intactos).
+- **Backup** por `vacuum into`: um antes de qualquer migration pendente e um diário (boot + a cada 6h, guarda 7), em `backups/` ao lado do banco — `/data/backups` no Render. Limite registrado: mesmo disco, então protege de erro do app, não de perda do disco.
+- 3 testes novos (ordem e rollback das migrations, recusa de banco mais novo, backup legível/diário/faxina) — **42 do backend passam**. ARQUITETURA §8 e R4 reescritas; README ganhou restauração e deploy.
+
+---
+
+## 2026-11-04 — segurança
+
+**Rodada de segurança** (assets 2.0.0 → **2.0.1**). Três furos achados na análise estrutural, cada um com teste que falha no código anterior — **39 testes do backend passam**.
+
+- **O IP da evidência do aceite era forjável.** `links.js` lia o *primeiro* item do `X-Forwarded-For`, que é escrito por quem faz a requisição: o inquilino gravava o IP que quisesse em `finalized_ip`, justo a parte da trilha que deveria ser só do servidor. Agora é `req.ip`, com `trust proxy` vindo de `TRUST_PROXY` (no `render.yaml`, `1`). Calibrar no primeiro aceite real em produção: `finalized_ip` tem de ser o IP do inquilino, não o do proxy.
+- **Login sem limite de tentativas, e cada tentativa congelava o servidor.** `scryptSync` segurava o event loop ~100ms por hash; poucas requisições por segundo travavam o sistema para todos. O hash passou a `crypto.scrypt` assíncrono, e o login trava após 10 falhas por e-mail ou 50 por IP em 15 min (429, checado antes do hash). De carona: e-mail inexistente agora também paga o hash — antes respondia mais rápido e denunciava, pelo relógio, quem não tinha conta. O cadastro faz o hash antes da checagem de duplicado, para dois cadastros simultâneos num banco vazio não nascerem ambos admin.
+- **A senha da exclusão de conta aparecia em claro**: era pedida por `prompt()`, que não mascara. Virou campo `type="password"` na própria seção de exclusão, com `confirm()` só para o aviso.
+
+---
+
 ## 2026-08-27
 
 **Nenhuma edicao de contrato chegava ao banco** — e era isso que criava a "copia" do contrato assinado.

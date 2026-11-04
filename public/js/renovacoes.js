@@ -5,7 +5,7 @@
 // nova: tudo aqui é derivado dos contratos que já existem — término, data de
 // início e a trilha de reajuste que o `Storage.applyContractReajuste` grava.
 // Isso é de propósito. Um "módulo de alertas" com tabela própria precisaria de
-// migration, RLS e um job de envio; o valor real (ver o que vence e agir) sai
+// migration, rota com escopo e um job de envio; o valor real (ver o que vence e agir) sai
 // inteiro do dado que já está lá.
 //
 // O que NÃO existe e por isso não aparece: envio automático de aviso por

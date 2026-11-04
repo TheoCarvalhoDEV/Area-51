@@ -33,10 +33,11 @@ function expurgar() {
   db.prepare('delete from tenant_links where expires_at < ?').run(agora());
 }
 
-function ipDe(req) {
-  const encaminhado = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return encaminhado || req.socket.remoteAddress || '';
-}
+// `req.ip`, não o X-Forwarded-For lido à mão: o primeiro item daquele
+// cabeçalho é escrito pelo cliente, e o inquilino forjaria o IP da própria
+// evidência. Quais saltos são confiáveis é decidido UMA vez, no `trust proxy`
+// de server/index.js.
+const ipDe = (req) => req.ip || '';
 
 // ── Criar (locador, exige sessão) ───────────────────────────────────────
 router.post('/', exigirLogin, (req, res) => {

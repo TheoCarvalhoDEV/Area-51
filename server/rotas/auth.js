@@ -16,7 +16,8 @@ const {
 
 const router = express.Router();
 
-const MIN_SENHA = 6;
+// O mesmo mínimo que a tela de cadastro anuncia (auth.js do front).
+const MIN_SENHA = 8;
 const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Fronteira de confiança: validar aqui, não só na tela. O que chega no corpo
@@ -31,18 +32,71 @@ function validar(email, senha) {
 
 const publico = (u) => ({ id: u.id, email: u.email, is_admin: !!u.is_admin });
 
+// ── Limite de tentativas de login ───────────────────────────────────────
+//
+// Sem isto o login aceita adivinhação à vontade. Duas contagens, porque os
+// ataques são dois: muitas senhas contra UM e-mail (de vários IPs) e muitos
+// e-mails a partir de UM IP. O teto por IP é mais alto: um escritório inteiro
+// sai pelo mesmo IP, e errar a senha não pode trancar os colegas.
+//
+// A checagem vem ANTES do scrypt: recusar depois de hashear ainda gastaria a
+// CPU que o limite existe para poupar.
+//
+// ponytail: memória do processo — reinício zera a contagem e não vale entre
+// várias instâncias. Basta enquanto o sistema roda num processo só (o SQLite
+// já exige isso); com mais de um, a contagem vai para o banco.
+const JANELA = 15 * 60e3;
+const TETO = { email: 10, ip: 50 };
+const falhas = new Map();   // chave -> { n, ate }
+
+function chavesDe(req, email) {
+  return [['email', 'e:' + email.toLowerCase()], ['ip', 'i:' + req.ip]];
+}
+
+function bloqueado(chaves) {
+  const agora = Date.now();
+  return chaves.some(([tipo, k]) => {
+    const f = falhas.get(k);
+    if (f && f.ate < agora) { falhas.delete(k); return false; }
+    return !!f && f.n >= TETO[tipo];
+  });
+}
+
+function contarFalha(chaves) {
+  const agora = Date.now();
+  // Faxina ocasional: chave de quem nunca voltou não pode ficar para sempre.
+  if (falhas.size > 10000) {
+    for (const [k, f] of falhas) if (f.ate < agora) falhas.delete(k);
+  }
+  for (const [, k] of chaves) {
+    const f = falhas.get(k);
+    if (f && f.ate >= agora) f.n++;
+    else falhas.set(k, { n: 1, ate: agora + JANELA });
+  }
+}
+
+// Salt fixo para o caso de e-mail inexistente: o hash roda mesmo assim, senão
+// a resposta rápida para "não existe" e lenta para "senha errada" entregaria,
+// pelo relógio, quem tem conta — exatamente o que a mensagem igual esconde.
+const SALT_FANTASMA = '0'.repeat(32);
+
 // ── Cadastro ────────────────────────────────────────────────────────────
-router.post('/registrar', (req, res) => {
+router.post('/registrar', async (req, res) => {
   const email = String(req.body.email || '').trim();
   const senha = req.body.senha;
 
   const erro = validar(email, senha);
   if (erro) return res.status(400).json({ erro });
 
+  // O hash vem ANTES da checagem de duplicado e da contagem de contas: depois
+  // do `await` não pode haver nada assíncrono até o insert. Senão dois
+  // cadastros simultâneos passariam juntos pela checagem — e, num banco vazio,
+  // os dois nasceriam admin.
+  const { salt, senha_hash } = await criarSenha(String(senha));
+
   const existe = db.prepare('select id from users where email = ?').get(email);
   if (existe) return res.status(409).json({ erro: 'already registered' });
 
-  const { salt, senha_hash } = criarSenha(senha);
   const user = {
     id: crypto.randomUUID(),
     email,
@@ -62,17 +116,30 @@ router.post('/registrar', (req, res) => {
 });
 
 // ── Entrar ──────────────────────────────────────────────────────────────
-router.post('/entrar', (req, res) => {
+router.post('/entrar', async (req, res) => {
   const email = String(req.body.email || '').trim();
   const senha = String(req.body.senha || '');
 
+  const chaves = chavesDe(req, email);
+  if (bloqueado(chaves)) {
+    return res.status(429).json({ erro: 'Muitas tentativas. Aguarde 15 minutos e tente de novo.' });
+  }
+
   const u = db.prepare('select * from users where email = ?').get(email);
+  const certa = u
+    ? await conferirSenha(senha, u.salt, u.senha_hash)
+    : (await conferirSenha(senha, SALT_FANTASMA, ''), false);
 
   // Mesma resposta para e-mail inexistente e senha errada: distinguir os dois
   // transforma o login num verificador de quem tem conta aqui.
-  if (!u || !conferirSenha(senha, u.salt, u.senha_hash)) {
+  if (!certa) {
+    contarFalha(chaves);
     return res.status(401).json({ erro: 'Invalid login credentials' });
   }
+
+  // Só a contagem do e-mail zera no acerto. Zerar a do IP deixaria quem tem
+  // uma conta própria "limpar" o IP entrando nela entre rodadas de ataque.
+  falhas.delete(chaves[0][1]);
 
   db.prepare('update users set ultimo_login = ? where id = ?').run(new Date().toISOString(), u.id);
   abrirSessao(res, u.id);
@@ -93,13 +160,13 @@ router.get('/sessao', (req, res) => {
 });
 
 // ── Trocar a senha (logado) ─────────────────────────────────────────────
-router.put('/senha', exigirLogin, (req, res) => {
+router.put('/senha', exigirLogin, async (req, res) => {
   const senha = req.body.senha;
   if (!senha || String(senha).length < MIN_SENHA) {
     return res.status(400).json({ erro: `A senha precisa ter ao menos ${MIN_SENHA} caracteres.` });
   }
 
-  const { salt, senha_hash } = criarSenha(senha);
+  const { salt, senha_hash } = await criarSenha(String(senha));
   db.prepare('update users set senha_hash = ?, salt = ? where id = ?')
     .run(senha_hash, salt, req.usuario.id);
 
@@ -117,11 +184,11 @@ router.put('/senha', exigirLogin, (req, res) => {
 // ── Excluir a própria conta ─────────────────────────────────────────────
 // Substitui a RPC delete_own_account. A senha é cobrada de novo aqui, e não só
 // na tela: é a última confirmação antes de um apagamento em cascata.
-router.delete('/conta', exigirLogin, (req, res) => {
+router.delete('/conta', exigirLogin, async (req, res) => {
   const senha = String(req.body.senha || '');
   const u = db.prepare('select * from users where id = ?').get(req.usuario.id);
 
-  if (!u || !conferirSenha(senha, u.salt, u.senha_hash)) {
+  if (!u || !(await conferirSenha(senha, u.salt, u.senha_hash))) {
     return res.status(401).json({ erro: 'Senha incorreta. Nada foi apagado.' });
   }
 
