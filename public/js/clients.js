@@ -15,7 +15,7 @@ const ClientsView = {
   contratosDe(cli) {
     const doc = Utils.docLimpo(cli && cli.document);
     if (!doc) return [];
-    return Storage.getAll().filter(c => c.fields && Utils.docLimpo(c.fields.cpf_locatario) === doc);
+    return Storage.getAll().filter(c => c.fields && Utils.docLimpo(c.fields.doc_locatario) === doc);
   },
 
   // Painel de leitura: a tabela mostra 5 colunas de 13 campos, e até aqui ler o
