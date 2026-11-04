@@ -129,9 +129,8 @@ const CloudDB = {
   // ID aleatório (não-enumerável) para o link — sempre via CSPRNG (getRandomValues/randomUUID)
   _randomId() {
     if (window.crypto.randomUUID) return window.crypto.randomUUID();
-    // Fallback (contexto não-seguro / Safari antigo): mantém o formato UUID.
-    // A coluna tenant_links.id é TEXT, mas contracts.cloud_id é uuid — é o
-    // cloud_id que exige o formato válido (ver supabase/migrations/001).
+    // Fallback (contexto não-seguro / Safari antigo): mesmo formato UUID v4 do
+    // randomUUID, para todo id de link ter a mesma cara.
     const b = window.crypto.getRandomValues(new Uint8Array(16));
     b[6] = (b[6] & 0x0f) | 0x40; // versão 4
     b[8] = (b[8] & 0x3f) | 0x80; // variante RFC 4122
@@ -139,7 +138,7 @@ const CloudDB = {
     return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
   },
 
-  // Prova de posse da chave (migration 003). Mandamos SHA-256(chave) em hex; o
+  // Prova de posse da chave (server/rotas/links.js). Mandamos SHA-256(chave) em hex; o
   // servidor guarda SHA-256 disso. Ele nunca aprende a chave — a propriedade
   // que sustenta o modelo (a tabela sozinha não decifra nada) continua de pé —
   // e quem só tem o id não escreve mais no link.

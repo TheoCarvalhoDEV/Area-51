@@ -53,6 +53,7 @@ const Api = {
 
   // ── CRUD dos recursos ─────────────────────────────────────────────────
   list(recurso) { return this._req('GET', recurso); },
+  get(recurso, id) { return this._req('GET', recurso + '/' + encodeURIComponent(id)); },
   save(recurso, item) { return this._req('PUT', recurso + '/' + encodeURIComponent(item.id), item); },
   remove(recurso, id) { return this._req('DELETE', recurso + '/' + encodeURIComponent(id)); },
 

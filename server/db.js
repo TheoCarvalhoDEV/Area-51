@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════
 // Banco — node:sqlite, arquivo único.
 //
-// O schema nasce no boot (`create table if not exists`). Não há sistema de
-// migration: com um arquivo local e sem dado em produção, migration é
-// cerimônia. Quando houver banco que não se pode recriar, isto muda.
+// O schema é a lista MIGRACOES, aplicada em ordem no boot. A versão do banco
+// mora no `pragma user_version` do próprio SQLite — não há tabela de controle.
+// Antes de aplicar qualquer migration num banco com dados, sai um backup.
 //
 // A parte que importa deste arquivo é o mapa RECURSOS: ele descreve as tabelas
 // que o app acessa por CRUD genérico, e é a ÚNICA lista branca de nomes de
@@ -12,15 +12,61 @@
 
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
+const fs = require('node:fs');
 
 const ARQUIVO = process.env.DB_FILE || path.join(__dirname, '..', 'data.db');
+// Ao lado do banco por padrão: no Render isso é /data/backups, dentro do disco
+// persistente. Mesmo disco = protege de erro do app (migration ruim, exclusão
+// indevida), NÃO de perda do disco — para isso, cópia para fora (ver README).
+const PASTA_BACKUP = process.env.BACKUP_DIR || path.join(path.dirname(ARQUIVO), 'backups');
+const MANTER_BACKUPS = 7;
+
 const db = new DatabaseSync(ARQUIVO);
 
 db.exec('pragma journal_mode = WAL');
 db.exec('pragma foreign_keys = ON');
 
-// ── Schema ──────────────────────────────────────────────────────────────
-db.exec(`
+// ── Backup ──────────────────────────────────────────────────────────────
+//
+// `vacuum into` é o backup nativo do SQLite: copia um retrato consistente
+// mesmo com o servidor gravando, e o arquivo gerado é um banco completo —
+// restaurar é copiá-lo por cima do data.db com o servidor parado.
+//
+// ponytail: `DatabaseSync` é síncrono, então o backup segura o event loop
+// enquanto copia. Com um banco de poucos MB são milissegundos; se passar de
+// centenas de MB, mover para `node:sqlite` backup() assíncrono.
+function backup(banco, pasta, nome) {
+  fs.mkdirSync(pasta, { recursive: true });
+  const alvo = path.join(pasta, nome);
+  if (fs.existsSync(alvo)) return null;   // `vacuum into` recusa sobrescrever
+  banco.exec(`vacuum into '${alvo.replace(/'/g, "''")}'`);
+  return alvo;
+}
+
+// Um por dia, guardando os últimos `manter`. Chamado no boot e a cada poucas
+// horas: o nome é a data, então chamar de novo no mesmo dia não faz nada.
+const DIARIO = /^data-\d{4}-\d{2}-\d{2}\.db$/;
+function backupDiario(banco, pasta, manter = MANTER_BACKUPS) {
+  const feito = backup(banco, pasta, `data-${new Date().toISOString().slice(0, 10)}.db`);
+  const diarios = fs.readdirSync(pasta).filter(f => DIARIO.test(f)).sort();
+  for (const f of diarios.slice(0, -manter)) fs.unlinkSync(path.join(pasta, f));
+  return feito;
+}
+
+// ── Migrations ──────────────────────────────────────────────────────────
+//
+// Regras (ARQUITETURA.md R4):
+// - Só se ACRESCENTA ao fim da lista. Migration que já rodou em produção
+//   nunca é editada nem removida — o banco não roda de novo, e o código
+//   passaria a descrever um schema que não existe.
+// - Cada uma roda numa transação junto com o bump do `user_version`: ou
+//   entra inteira, ou o banco fica exatamente como estava.
+// - O índice na lista + 1 é o número da versão.
+const MIGRACOES = [
+  // 1 — baseline: o schema de 2026-08-26. Fica com `if not exists` de
+  // propósito: bancos criados antes deste regime estão em user_version 0 e já
+  // têm estas tabelas. Migrations daqui pra frente são `alter table` comuns.
+  `
 create table if not exists users (
   id          text primary key,
   email       text not null unique collate nocase,
@@ -143,7 +189,46 @@ create table if not exists tenant_links (
 );
 create index if not exists tenant_links_criador_idx
   on tenant_links (created_by, created_at desc);
-`);
+`
+];
+
+// Leva o banco até a última versão da lista. `antes(versaoAtual)` roda só se
+// houver migration pendente — é o gancho do backup.
+function migrar(banco, lista, antes) {
+  const atual = banco.prepare('pragma user_version').get().user_version;
+
+  // Banco mais novo que o código: deploy revertido para uma versão antiga.
+  // Seguir rodando seria o código antigo gravando num schema que ele não
+  // conhece. Melhor não ligar e dizer por quê.
+  if (atual > lista.length) {
+    throw new Error(`Banco na versão ${atual}, mas este código só conhece até a ${lista.length}. ` +
+      'Volte para a versão do código que criou este banco.');
+  }
+  if (atual === lista.length) return atual;
+  if (antes) antes(atual);
+
+  for (let v = atual; v < lista.length; v++) {
+    banco.exec('begin');
+    try {
+      banco.exec(lista[v]);
+      banco.exec(`pragma user_version = ${v + 1}`);
+      banco.exec('commit');
+    } catch (e) {
+      banco.exec('rollback');
+      throw new Error(`Migration ${v + 1} falhou e foi desfeita; o banco segue na versão ${v}. ${e.message}`);
+    }
+  }
+  return lista.length;
+}
+
+migrar(db, MIGRACOES, (versao) => {
+  // Banco recém-criado não tem o que perder; banco com tabelas tem.
+  const temDados = db.prepare("select count(*) n from sqlite_master where type = 'table'").get().n > 0;
+  if (temDados) {
+    const salvo = backup(db, PASTA_BACKUP, `data-antes-v${versao + 1}-${Date.now()}.db`);
+    console.log(`Backup antes das migrations: ${salvo}`);
+  }
+});
 
 // ── Mapa dos recursos com CRUD genérico ─────────────────────────────────
 //
@@ -162,7 +247,8 @@ const RECURSOS = {
     colunas: ['id', 'user_id', 'name', 'template_id', 'fields', 'is_finalized',
       'cloud_id', 'cloud_key', 'created_at', 'updated_at'],
     json: ['fields'],
-    bool: ['is_finalized']
+    bool: ['is_finalized'],
+    midia: 'fields'
   },
   properties: {
     colunas: ['id', 'user_id', 'name', 'address', 'cep', 'type', 'bedrooms',
@@ -189,6 +275,40 @@ const RECURSOS = {
     json: ['rooms'], bool: []
   }
 };
+
+// ── Imagens fora da listagem ────────────────────────────────────────────
+//
+// `contracts.fields` guarda assinaturas e selfie como data: URL (~100 KB por
+// contrato assinado). A listagem roda a cada login e nenhuma tela de lista
+// mostra imagem — só o editor, que busca o contrato inteiro ao abrir.
+//
+// O perigo de mandar um objeto pela metade é ele voltar pela metade: uma tela
+// que copia `fields` (reajuste, importação) e regrava apagaria as assinaturas.
+// Por isso a listagem MARCA o que omitiu, e a marca viaja junto com qualquer
+// cópia (`{...fields}` leva a chave). Gravação marcada é parcial por definição:
+// o servidor repõe as imagens que já tinha e descarta a marca. Gravação sem
+// marca é inteira — é assim que o editor apaga uma assinatura de propósito.
+const MARCA_MIDIA = '_midia_omitida';
+const ehMidia = (v) => typeof v === 'string' && /^\s*data:/i.test(v);
+
+function semMidia(campos) {
+  const f = { ...(campos || {}) };
+  for (const k of Object.keys(f)) {
+    if (ehMidia(f[k])) { delete f[k]; f[MARCA_MIDIA] = true; }
+  }
+  return f;
+}
+
+// O que chegou vence; do que estava guardado, só voltam as imagens ausentes.
+function repoeMidia(novo, guardado) {
+  if (!novo || typeof novo !== 'object' || !novo[MARCA_MIDIA]) return novo;
+  const f = { ...novo };
+  delete f[MARCA_MIDIA];
+  for (const [k, v] of Object.entries(guardado || {})) {
+    if (!(k in f) && ehMidia(v)) f[k] = v;
+  }
+  return f;
+}
 
 // ── Conversão de borda ──────────────────────────────────────────────────
 
@@ -223,4 +343,7 @@ function paraDentro(valor, coluna, meta) {
   return valor;
 }
 
-module.exports = { db, RECURSOS, paraFora, paraDentro, ARQUIVO };
+module.exports = {
+  db, RECURSOS, paraFora, paraDentro, ARQUIVO, semMidia, repoeMidia, MARCA_MIDIA,
+  MIGRACOES, migrar, backup, backupDiario, PASTA_BACKUP
+};

@@ -83,14 +83,6 @@ const App = {
     
     const route = this.routes[path] || 'dashboard';
 
-    // Fluxo de redefinição de senha (link do e-mail).
-    // A rota do inquilino (#tenant) passa direto — ele não pode ser bloqueado pelo recovery do locador.
-    if (false) {
-      document.body.classList.add('tenant-mode');
-      AuthUI.renderNewPassword(this.container);
-      return;
-    }
-
     // Interceptação de login
     if (!this.user && route !== 'tenant') {
       document.body.classList.add('tenant-mode'); // Esconde sidebar/navbar

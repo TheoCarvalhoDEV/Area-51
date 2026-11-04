@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // SuperAdmin — visão de todas as contas (todas as ilhas)
-// Só funciona para conta com `is_admin` no banco (ver isAdmin abaixo)
-// (concedido via supabase_admin.sql; o RLS bloqueia os demais).
+// Só funciona para conta com `is_admin` no banco (a primeira conta criada);
+// o servidor (exigirAdmin) barra as demais.
 // Somente leitura: ficha de suporte, não edição.
 // ═══════════════════════════════════════════════════════
 
@@ -81,9 +81,6 @@ const SuperAdmin = {
     `;
 
     try {
-      // Contratos vêm por RPC, não da tabela: a função devolve só as colunas de
-      // supervisão e NUNCA cloud_key, que é a credencial dos links do inquilino
-      // (ver supabase/migrations/002). Perfis seguem por política de admin.
       // Contratos vem por rota propria, nao pela tabela: /api/admin/contracts
       // lista as colunas uma a uma e NUNCA devolve cloud_key, que e a
       // credencial dos links do inquilino.
@@ -94,7 +91,6 @@ const SuperAdmin = {
       ]);
 
       this.contas = this.groupAccounts(contracts, profiles, users);
-      this.semDadosDeConta = !users.length;
       this.renderContas(container);
     } catch (err) {
       container.innerHTML = `
@@ -205,11 +201,6 @@ const SuperAdmin = {
       `;
     }).join('');
 
-    const aviso = this.semDadosDeConta ? `
-      <div style="padding: 12px 16px; border: 1px solid var(--warning); background: var(--warning-bg); color: var(--warning); border-radius: var(--radius-md); font-size: 13px;">
-        E-mail e datas de acesso indisponíveis: aplique as migrations de <strong>supabase/migrations/</strong> para criar a função <strong>admin_list_users</strong>.
-      </div>` : '';
-
     container.innerHTML = `
       <div class="page-header animate-fade-in-down">
         <div>
@@ -233,7 +224,6 @@ const SuperAdmin = {
         </div>
       </div>
 
-      ${aviso}
 
       <!-- Num div: input é inline-block e o "margin: auto" da coluna central
            de #main-content não centraliza inline-block — o campo escapava à esquerda. -->

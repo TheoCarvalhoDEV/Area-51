@@ -16,6 +16,22 @@ const PORTA = Number(process.env.PORT) || 3000;
 const app = express();
 app.disable('x-powered-by');
 
+// Quantos proxies existem na frente do servidor. Define o `req.ip`, que vira
+// o IP carimbado no aceite do inquilino e a chave do limite de login.
+//
+// Sem proxy (rodando local), fica desligado e `req.ip` é o socket. Atrás de
+// proxy (Render), TEM de ser ligado: senão todo mundo aparece com o IP do
+// proxy — e o limite de login por IP tranca todos os usuários juntos.
+//
+// Nunca `true` e nunca ler o PRIMEIRO item do X-Forwarded-For: esse é escrito
+// por quem faz a requisição, e o inquilino forjaria o IP da própria evidência.
+// Com um número N, o Express conta N saltos a partir da DIREITA — os itens que
+// os proxies acrescentaram, não os que o cliente mandou.
+//
+// Calibrar: depois de um aceite real em produção, conferir se o
+// `finalized_ip` é o IP do celular do inquilino. Se vier o do proxy, aumentar.
+if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY));
+
 // 1 MB: o maior corpo legítimo é o payload cifrado do link (teto de 512 KB),
 // que cresce ~33% em base64 no transporte JSON.
 app.use(express.json({ limit: '1mb' }));
@@ -63,6 +79,22 @@ app.use((err, req, res, next) => {
 });
 
 if (require.main === module) {
+  // Backup diário: no boot e a cada 6h. O nome é a data, então só a primeira
+  // chamada de cada dia copia — as outras garantem que um processo que fica de
+  // pé por dias não pule nenhum. Falha de backup não derruba o servidor, mas
+  // grita no log: backup que falha em silêncio é backup que não existe.
+  const { db, backupDiario, PASTA_BACKUP } = require('./db');
+  const fazerBackup = () => {
+    try {
+      const feito = backupDiario(db, PASTA_BACKUP);
+      if (feito) console.log(`Backup diário: ${feito}`);
+    } catch (e) {
+      console.error('BACKUP FALHOU:', e);
+    }
+  };
+  fazerBackup();
+  setInterval(fazerBackup, 6 * 3600e3);
+
   app.listen(PORTA, () => {
     console.log(`Meus Imóveis em http://localhost:${PORTA}`);
   });

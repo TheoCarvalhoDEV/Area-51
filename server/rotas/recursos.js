@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════
 
 const express = require('express');
-const { db, RECURSOS, paraFora, paraDentro } = require('../db');
+const { db, RECURSOS, paraFora, paraDentro, semMidia, repoeMidia } = require('../db');
 const { exigirLogin } = require('../sessao');
 
 const router = express.Router();
@@ -31,7 +31,23 @@ router.get('/:recurso', meta, (req, res) => {
   const linhas = db
     .prepare(`select * from ${req.tabela} where user_id = ?`)
     .all(req.usuario.id);
-  res.json(linhas.map(l => paraFora(l, req.meta)));
+  const m = req.meta.midia;
+  res.json(linhas.map(l => {
+    const fora = paraFora(l, req.meta);
+    // Sem imagens na lista (ver semMidia em db.js); o editor pede o inteiro.
+    if (m) fora[m] = semMidia(fora[m]);
+    return fora;
+  }));
+});
+
+// ── Ler um, inteiro ─────────────────────────────────────────────────────
+router.get('/:recurso/:id', meta, (req, res) => {
+  const linha = db
+    .prepare(`select * from ${req.tabela} where id = ? and user_id = ?`)
+    .get(req.params.id, req.usuario.id);
+  // 404 também para id de outra conta, pelo mesmo motivo do DELETE.
+  if (!linha) return res.status(404).json({ erro: 'Registro não encontrado.' });
+  res.json(paraFora(linha, req.meta));
 });
 
 // ── Gravar (upsert) ─────────────────────────────────────────────────────
@@ -42,8 +58,9 @@ router.put('/:recurso/:id', meta, (req, res) => {
   // Dono primeiro. Sem esta checagem, `on conflict do update` deixaria
   // qualquer usuário sobrescrever a linha de outro só conhecendo o id — os ids
   // são gerados no cliente e viajam em link, então "conhecer o id" é barato.
+  const m = req.meta.midia;
   const dono = db
-    .prepare(`select user_id, created_at from ${req.tabela} where id = ?`)
+    .prepare(`select user_id, created_at${m ? ', ' + m : ''} from ${req.tabela} where id = ?`)
     .get(id);
   if (dono && dono.user_id !== req.usuario.id) {
     return res.status(403).json({ erro: 'Este registro é de outra conta.' });
@@ -59,6 +76,14 @@ router.put('/:recurso/:id', meta, (req, res) => {
   // se perdia. Linha ja existente reusa o proprio valor; o `set` abaixo nao
   // inclui created_at, entao a data de criacao continua imutavel.
   entrada.created_at = (dono && dono.created_at) || entrada.created_at || agora;
+
+  // Gravação feita a partir da listagem (sem imagens): repõe as que o banco
+  // tinha, senão um reajuste apagaria as assinaturas. Ver repoeMidia em db.js.
+  if (m && entrada[m] && typeof entrada[m] === 'object') {
+    let guardado = {};
+    try { guardado = dono ? JSON.parse(dono[m]) : {}; } catch { /* corrompido: nada a repor */ }
+    entrada[m] = repoeMidia(entrada[m], guardado);
+  }
 
   const cols = req.meta.colunas.filter(c => c in entrada);
   const valores = cols.map(c => paraDentro(entrada[c], c, req.meta));

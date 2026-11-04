@@ -93,6 +93,10 @@ const Admin = {
             Apaga permanentemente sua conta, seu perfil e todos os seus contratos (LGPD, art. 18).
             Esta ação não pode ser desfeita.
           </p>
+          <div class="form-group" style="max-width: 320px; margin-bottom: 12px;">
+            <label class="form-label" for="admin_senha_exclusao">Sua senha, para confirmar</label>
+            <input type="password" class="form-input" id="admin_senha_exclusao" autocomplete="current-password">
+          </div>
           <button class="btn btn-danger" onclick="Admin.deleteAccount()">Excluir minha conta e todos os dados</button>
         </div>
       </div>
@@ -144,19 +148,23 @@ const Admin = {
     }, 2000);
   },
 
-  // Exclusão da própria conta (LGPD, art. 18): apaga contratos, perfil e o usuário via RPC.
+  // Exclusão da própria conta (LGPD, art. 18): DELETE /api/auth/conta apaga tudo em cascata.
   deleteAccount() {
     if (!App.user) return;
-    // Senha, não uma palavra digitada: a RPC apaga tudo de forma irreversível e
+    // Senha, não uma palavra digitada: a rota apaga tudo de forma irreversível e
     // é chamável em uma linha de console. Digitar "EXCLUIR" prova intenção de
     // quem está na tela, não que a sessão é mesmo do dono — e uma sessão roubada
     // (ou um XSS) tem as duas coisas.
-    const senha = prompt('Isso apaga sua conta, seu perfil e TODOS os seus contratos, sem volta.\n\nDigite sua SENHA para confirmar:');
-    if (senha === null) return;
+    // Campo de senha de verdade, não `prompt()`: o prompt nativo não mascara o
+    // que se digita, e a senha ficava legível na tela para quem estivesse ao lado.
+    const campo = document.getElementById('admin_senha_exclusao');
+    const senha = campo ? campo.value : '';
     if (!senha) {
-      Utils.toast('Senha não informada. Nada foi apagado.', 'error');
+      Utils.toast('Digite sua senha no campo acima. Nada foi apagado.', 'error');
+      if (campo) campo.focus();
       return;
     }
+    if (!confirm('Isso apaga sua conta, seu perfil e TODOS os seus contratos, sem volta. Continuar?')) return;
 
     // A senha e cobrada de novo no servidor, nao so aqui: esta tela e a
     // penultima confirmacao, nao a ultima.

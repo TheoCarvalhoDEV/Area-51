@@ -282,7 +282,7 @@ const Utils = {
       if (permitidos.has(k)) saida[k] = doInquilino[k];
     });
 
-    // Carimbo do servidor (migration 003). Entra DEPOIS da lista branca e
+    // Carimbo do servidor (tenant_links.finalized_at/ip). Entra DEPOIS da lista branca e
     // sempre vence: são os únicos campos da trilha que quem assina não redige.
     // Os nomes ficam fora de CAMPOS_EXTRA_DO_INQUILINO de propósito — assim um
     // "aceite_ts_servidor" forjado no payload é descartado acima.
@@ -511,7 +511,7 @@ const Utils = {
     ].filter(Boolean);
 
     // Aceite: única informação com peso jurídico aqui, então sai da grade e ganha
-    // linha própria. Prefere o carimbo do servidor (migration 003); o aceite_ts é
+    // linha própria. Prefere o carimbo do servidor (finalized_at); o aceite_ts é
     // escrito pelo próprio signatário e só vale como referência de tela — quando é
     // ele que aparece, o selo diz isso e muda de cor.
     const verificado = !!fields.aceite_ts_servidor;
@@ -883,10 +883,10 @@ const Utils = {
     fields = fields || {};
     if (!fields.aceite_ts && !fields.assinatura_locatario && !fields.selfie_locatario) return '';
 
-    // Data e IP saem do carimbo do SERVIDOR (migration 003). Os equivalentes em
+    // Data e IP saem do carimbo do SERVIDOR (tenant_links.finalized_at/ip). Os equivalentes em
     // fields (aceite_ts, ip_acesso) são escritos no navegador de quem assina —
     // servem para a tela, não como prova, porque o próprio signatário os edita.
-    // Contrato assinado antes da 003 não tem carimbo: aí o certificado diz isso
+    // Contrato sem carimbo (aceite fora do link): aí o certificado diz isso
     // em vez de apresentar o valor autodeclarado como se fosse evidência.
     // Fuso fixo: toLocaleString sem timeZone usa o do aparelho que abre o PDF,
     // então o mesmo aceite imprimia horas diferentes para locador e inquilino —

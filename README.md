@@ -31,7 +31,6 @@ O link do inquilino carrega um **payload cifrado em AES-GCM** no próprio navega
 
 **Painel do locador**
 - Cadastro e login com perfil **PF ou PJ**, com campos distintos para cada
-- Recuperação e redefinição de senha por e-mail
 - Dashboard: total de contratos, vencimentos nos próximos 30 dias, receita mensal somada
 - Lista separada em abas Residenciais e Comerciais, com badges de status (Ativo, A Iniciar, Vencido, Pendente)
 - Perfil do locador reaproveitado no preenchimento automático dos contratos
@@ -109,14 +108,16 @@ npm start       # http://localhost:3000
 
 Depois acesse `http://localhost:3000/` (landing) ou `http://localhost:3000/app.html` (aplicação). `npm run dev` reinicia o servidor a cada alteração.
 
-O banco (`data.db`) é criado no primeiro boot, com o schema completo — não há passo de provisionamento e não há sistema de migration. **A primeira conta cadastrada vira administradora**; as seguintes, não.
+O banco (`data.db`) é criado no primeiro boot e as migrations pendentes rodam sozinhas a cada boot — não há passo de provisionamento. **A primeira conta cadastrada vira administradora**; as seguintes, não.
 
-> **Não há deploy configurado.** A Vercel serve estático e funções sem estado; um processo com banco em arquivo não roda lá. Hospedar exige host com disco persistente — decisão pendente, registrada em `docs/ARQUITETURA.md`.
+**Backup:** automático, em `backups/` ao lado do banco — um por dia (guarda 7) e um antes de cada migration. **Restaurar:** pare o servidor, copie o backup escolhido por cima do `data.db`, apague `data.db-wal` e `data.db-shm`, suba de novo.
+
+**Deploy:** Render, pelo `render.yaml` (New → Blueprint). Exige plano com disco persistente; banco e backups ficam em `/data`. O backup local não sobrevive à perda do disco — ver `docs/ARQUITETURA.md` §8.
 
 Testes — não exigem instalação, é Node puro:
 
 ```bash
-npm test          # roda os 6 checks
+npm test          # backend + front
 ```
 
 ---

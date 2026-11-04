@@ -6,6 +6,8 @@
 > processo Node/Express próprio com SQLite. Este documento foi reescrito, não
 > emendado — a Parte I inteira descrevia a Supabase e teria virado ficção.
 
+**Diagramas** (camadas, fluxo do inquilino, modelo de dados, segurança): [`DIAGRAMAS.md`](DIAGRAMAS.md).
+
 **Como usar este documento:**
 
 - **Parte I** descreve o sistema como ele é hoje — mapa fiel, incluindo os defeitos.
@@ -41,7 +43,7 @@ A stack do front continua sendo a do Caminho A. O que mudou foi o backend.
 
 **O que a decisão custou, registrado:** a redefinição de senha por e-mail deixou de existir — quem enviava o e-mail era a Supabase, e não há serviço de envio. A tela saiu em vez de ficar como botão que não chega a lugar nenhum.
 
-**Consequência de deploy:** a Vercel serve estático e funções sem estado; um processo com banco em arquivo não roda lá. O `vercel.json` saiu do repositório. **Hoje o sistema roda local** (`npm start`); quando o deploy voltar à pauta, o candidato é host com disco persistente. Isso é assunto de outro spec.
+**Consequência de deploy:** a Vercel serve estático e funções sem estado; um processo com banco em arquivo não roda lá. O `vercel.json` saiu do repositório. **Deploy:** Render com disco persistente (`Dockerfile` + `render.yaml`, commit `c705b9f`); o banco e os backups vivem em `/data`. Ver seção 8.
 
 **Critérios para reavaliar (sair de SQLite para Postgres):** mais de um processo servindo a mesma base, ou necessidade de acesso concorrente de escrita a partir de máquinas diferentes.
 
@@ -80,7 +82,7 @@ Todas em `public/`, servidas por `express.static`.
 | Página | Papel | Observações |
 |---|---|---|
 | `index.html` | Landing (marketing) | CSS próprio (`landing.css`), um script inline, nenhum JS da aplicação. Sempre escura. |
-| `app.html` | A aplicação (SPA por hash) | Shell fixo + `<main id="main-content">` vazio; todo conteúdo é injetado por JS. CSP em `<meta>`. Assets com `?v=2.0.0`. Barra lateral escura no desktop (`.app-sidebar`) mais `.content-bar` com a busca; no celular, `.mobile-header` + `.bottom-nav`. |
+| `app.html` | A aplicação (SPA por hash) | Shell fixo + `<main id="main-content">` vazio; todo conteúdo é injetado por JS. CSP em `<meta>`. Assets com `?v=2.0.3`. Barra lateral escura no desktop (`.app-sidebar`) mais `.content-bar` com a busca; no celular, `.mobile-header` + `.bottom-nav`. |
 | `termos.html` | Termos de uso + privacidade | Autônoma: estilo inline próprio, zero scripts, `noindex`. Minuta com campos `[PREENCHER]`. |
 
 O arquivo `redesign-organic.dc.html` (export de canvas que virou o shell em 24/08) foi renomeado para `app.html` em 26/08, junto com a saída da Supabase. Não havia mais link em circulação a preservar, e o nome era resíduo de maquete.
@@ -148,6 +150,8 @@ Parâmetro ausente ou inválido redireciona (editor) ou mostra erro (inquilino);
 
 **A armadilha do jsonb, e onde ela se conserta.** O PostgREST devolvia `jsonb` **já parseado**; o SQLite devolve **string**. Se isso passar, `contract.fields.valor_aluguel` vira `undefined` em todas as telas e nada acusa — a tela só mostra vazio. Por isso `db.js` declara, por recurso, quais colunas são JSON e quais são boolean, e **a conversão acontece na resposta do servidor**, não em `storage.js`. É a mesma classe do bug de dinheiro 100× (numeric serializado como string): o tipo muda na borda, e a borda é onde se conserta. Coberto por teste (`fields volta como OBJETO, nao string`).
 
+**Imagens fora da listagem (desde 2026-11-04).** Assinaturas e selfie moram em `contracts.fields` como data: URL (~100 KB por contrato assinado). `GET /api/contracts` as omite e marca o objeto com `_midia_omitida`; o editor chama `Storage.carregarCompleto(id)`, que busca `GET /api/contracts/:id`. A marca é o que impede perda de dado: ela viaja em toda cópia de `fields` (`{...fields}`), e gravação marcada é parcial — o servidor repõe as imagens que já tinha (`repoeMidia` em `db.js`). Gravação sem marca é inteira, e é assim que o editor apaga uma assinatura de propósito. Regra única nos dois lados: **o que chega vence; do guardado, só voltam as imagens ausentes.** O admin recebe sempre sem imagens.
+
 **`profiles` fica fora da família de recursos.** Não tem coluna `user_id` — a chave primária *é* o usuário. Encaixá-la no CRUD genérico exigiria uma exceção dentro do middleware de escopo, que é justamente a função onde exceção não pode entrar. Por isso tem rotas próprias **sem `:id`**: o único perfil que a sessão alcança é o dela, e sem parâmetro não há id de outra conta para tentar passar.
 
 **Vínculos apenas lógicos (sem FK):** contrato→imóvel via `fields->>'property_id'`; `financial_records.contract_id` é texto solto; cliente↔contrato casa por CPF/CNPJ. Únicas FKs reais: `user_id`/`created_by` → `users` com cascade.
@@ -159,18 +163,22 @@ Parâmetro ausente ou inválido redireciona (editor) ou mostra erro (inquilino);
 - **O escopo é de um middleware só.** `router.use(exigirLogin)` é a primeira linha do router de recursos; todo SQL de lá leva `user_id = ?` com o id **da sessão**. Handler nenhum lê usuário do corpo ou da query. É por ser um só que se pode afirmar que substitui a RLS — verificação repetida em cada handler é a que alguém esquece de repetir, e a esquecida é a que vaza.
 - **Gravar por id de outra conta é 403; apagar é 404.** O `upsert` por id deixaria B sobrescrever a linha de A só sabendo o id (e ids são gerados no cliente e viajam em link). Na exclusão o retorno é 404 de propósito: dizer "existe, mas não é seu" já conta que aquele id existe em alguma conta.
 - **Papéis: dois.** Locador comum e admin (coluna `is_admin`). O `SuperAdmin.isAdmin()` do front é **só cosmético** — esconde o item de menu; quem barra é o `exigirAdmin` do servidor, que reconsulta o banco a cada rota e não confia em nada que o navegador afirme. O admin é somente leitura, **nunca recebe `cloud_key`** e **não enxerga o ERP**.
-- **Senha:** `scrypt` do `node:crypto`, salt de 16 bytes por usuário, comparação com `timingSafeEqual`. Login com e-mail inexistente e com senha errada dão a **mesma** resposta — distinguir os dois transforma o login num verificador de quem tem conta. Trocar a senha derruba as outras sessões.
-- **Link do inquilino:** rotas públicas por definição (ele não tem conta). Chave de 16 caracteres CSPRNG (~95 bits), IV de 12 bytes por operação, transporte no fragmento da URL — não vai em request nem Referer. O servidor **nunca vê o conteúdo**: guarda bytes cifrados no navegador. `key_proof` é o que separa "tem o link" de "tem só o id", e o banco guarda **SHA-256 da prova**, não a prova — quem lê a base não consegue escrever no link. `finalized` é caminho só de ida. `finalized_at`/`finalized_ip` são carimbados pelo servidor, fora do payload cifrado: é a única parte da trilha que quem assina não redige. Expurgo dos expirados acontece **na leitura** (substituiu o `pg_cron` das 03:15 — tabela lida a cada acesso não precisa de agendador).
+- **Senha:** `scrypt` do `node:crypto`, salt de 16 bytes por usuário, comparação com `timingSafeEqual`. Login com e-mail inexistente e com senha errada dão a **mesma** resposta — distinguir os dois transforma o login num verificador de quem tem conta. Trocar a senha derruba as outras sessões. O hash é **assíncrono** (`crypto.scrypt`, no threadpool) — a versão síncrona congelava o servidor inteiro ~100ms a cada login. E-mail inexistente também paga o hash, para o tempo de resposta não denunciar quem tem conta. **Limite de tentativas:** 10 falhas por e-mail ou 50 por IP em 15 min → 429, checado antes do hash; contagem em memória do processo (vale enquanto houver um processo só).
+- **Link do inquilino:** rotas públicas por definição (ele não tem conta). Chave de 16 caracteres CSPRNG (~95 bits), IV de 12 bytes por operação, transporte no fragmento da URL — não vai em request nem Referer. O servidor **nunca vê o conteúdo**: guarda bytes cifrados no navegador. `key_proof` é o que separa "tem o link" de "tem só o id", e o banco guarda **SHA-256 da prova**, não a prova — quem lê a base não consegue escrever no link. `finalized` é caminho só de ida. `finalized_at`/`finalized_ip` são carimbados pelo servidor, fora do payload cifrado: é a única parte da trilha que quem assina não redige. O IP é `req.ip`, com `trust proxy` vindo de `TRUST_PROXY` (1 no Render) — **nunca** o primeiro item do `X-Forwarded-For`, que o próprio cliente escreve. Expurgo dos expirados acontece **na leitura** (substituiu o `pg_cron` das 03:15 — tabela lida a cada acesso não precisa de agendador).
 - **Todo dado vindo do inquilino é hostil.** Duas camadas anti-XSS, ambas testadas: sanitização na fronteira (`CloudDB._sanitizeDeep` dentro do `decrypt`) + `Utils.imgSeguro`/`Utils.esc` nos sinks. `js/seguranca.test.js` varre o fonte e falha se aparecer `value="${…}"` sem `Utils.esc` — regra sem exceção.
 - **O que o inquilino escreve é lista branca, não filtro de tela.** A regra vale na **ingestão** (`Utils.mesclarCamposDoInquilino`), pela qual passam os dois caminhos de entrada. Verificado em 26/08 contra o backend novo: um inquilino que envia `conta_locador`, `nome_locador` e `valor_aluguel` forjados não altera nenhum dos três.
 - **CSP:** com a saída da Supabase ficou mais curta e mais forte — `script-src` sem CDN externo, `connect-src` sem host de terceiro guardando dado. Sobraram `api.ipify.org`/`ipapi.co` (IP da trilha) e `viacep.com.br`. `unsafe-inline` continua por causa dos handlers inline: dívida conhecida. `frame-ancestors` não vale por `<meta>` — quem barra clickjacking é o `X-Frame-Options: DENY` que o `server/index.js` envia, junto com `nosniff` e `Referrer-Policy`.
 - **Nenhum segredo no repositório.** Com a Supabase saiu a última chave versionada. `data.db` está no `.gitignore`.
 
-## 8. Schema — criado no boot, sem sistema de migration
+## 8. Schema — migrations numeradas e backup
 
-O schema vive em `server/db.js` e nasce com `create table if not exists` a cada boot. **Não há sistema de migration**, e isso é decisão, não esquecimento: com um arquivo de banco local e sem dado que não se possa recriar, migration numerada é cerimônia. O regime anterior (`supabase/migrations/` + `verificacao.sql`, 23 checagens) existia porque havia um Postgres em produção que não se podia recriar.
+**Desde 2026-11-04**, antes do primeiro usuário real no Render (era o prazo que a R4.2 dava a si mesma).
 
-**Quando isto muda:** no dia em que existir um banco com dado que não se pode perder — primeiro deploy real com usuário de verdade. Aí volta um regime de migration, e a R4 volta a valer na forma antiga.
+- **Migrations:** a lista `MIGRACOES` em `server/db.js`, aplicada em ordem no boot. A versão do banco mora no `pragma user_version` do próprio SQLite — sem tabela de controle. Cada migration roda numa transação junto com o bump da versão: entra inteira ou não entra. A 1 é o baseline de 26/08, com `if not exists` para os bancos que já existiam em versão 0.
+- **Verificação:** é o próprio boot. O `verificacao.sql` antigo existia porque aplicar migration era um passo manual que podia não acontecer (e não aconteceu — ver o furo de 07/08). Agora aplicar é o boot, e o servidor **não liga** se a migration falhar ou se o banco for mais novo que o código (deploy revertido). Coberto por teste.
+- **Backup:** `vacuum into` — retrato consistente, um banco completo. Antes de qualquer migration pendente sai `backups/data-antes-vN-<ts>.db` (nunca apagado sozinho); e um diário `backups/data-AAAA-MM-DD.db` no boot e a cada 6h, guardando os 7 últimos. A pasta fica ao lado do banco (`/data/backups` no Render) ou em `BACKUP_DIR`.
+- **O limite, registrado:** backup no mesmo disco protege de erro do app (migration ruim, exclusão indevida), **não** de perda do disco. Para isso, os snapshots do próprio Render e/ou uma cópia periódica para fora — decisão pendente (P3).
+- **Restaurar:** parar o servidor, copiar o backup por cima do `data.db`, apagar `data.db-wal` e `data.db-shm`, subir.
 
 Os seis `supabase_*.sql` da raiz e a pasta `supabase/` inteira foram **apagados** em 26/08, junto com `js/supabase-config.js`, `vercel.json` e o `app.html` que era ponte de redirecionamento.
 
@@ -183,10 +191,10 @@ Os seis `supabase_*.sql` da raiz e a pasta `supabase/` inteira foram **apagados*
 
 ## 10. Testes
 
-**44 testes**, todos por `npm test`, sem framework e sem dependência de teste. CI no GitHub Actions a cada push e PR.
+**57 testes**, todos por `npm test`, sem framework e sem dependência de teste. CI no GitHub Actions a cada push e PR.
 
-- **Backend — 35 casos** (`server/servidor.test.js`, `node:test`): sobem o app num banco descartável e falam com ele por HTTP. Cobrem o escopo por usuário nas 5 tabelas e no perfil (o que substitui a RLS), senha e sessão, o ciclo do link do inquilino (prova de chave, finalizar só de ida, expiração, teto de 512 KB), a forma da resposta (`fields` como objeto) e as regras de admin.
-- **Front — 9 arquivos standalone**: leem o fonte e avaliam com `new Function`. Cobrem funções puras (prazo, datas, dinheiro, status), a superfície de segurança (anti-XSS nas duas camadas, `isAdmin`), `clearAll`, a cobrança mensal, o filtro da busca, o formato de dinheiro e a integridade dos tokens de tema.
+- **Backend — 46 casos** (`server/servidor.test.js`, `node:test`): sobem o app num banco descartável e falam com ele por HTTP. Cobrem o escopo por usuário nas 5 tabelas e no perfil (o que substitui a RLS), senha e sessão, o ciclo do link do inquilino (prova de chave, finalizar só de ida, expiração, teto de 512 KB, IP da evidência não forjável), o limite de tentativas de login, o hash de senha fora do event loop, as migrations (ordem, rollback da que falha, recusa de banco mais novo) e o backup diário, as imagens fora da listagem (sem perda ao regravar), a forma da resposta (`fields` como objeto) e as regras de admin.
+- **Front — 11 arquivos standalone**: leem o fonte e avaliam com `new Function`. Cobrem funções puras (prazo, datas, dinheiro, status), a superfície de segurança (anti-XSS nas duas camadas, `isAdmin`), `clearAll`, a cobrança mensal, o filtro da busca, o formato de dinheiro, a integridade dos tokens de tema e o `carregarCompleto` (cache vence o servidor).
 
 **Zero cobertura automatizada nos 3 maiores arquivos do front** (editor, tenant, auth — ~1.900 linhas). Eles são verificados por auditoria de runtime, não por teste: em 26/08 as 10 rotas foram renderizadas e **37 handlers inline disparados um a um, sem falha e sem erro de console**, e o fluxo do inquilino foi percorrido ponta a ponta num navegador de verdade.
 
@@ -233,8 +241,8 @@ O servidor é a fonte da verdade; o cache é derivado e descartável. Três obri
 
 ## R4 — Banco de dados
 
-1. **O schema mora em `server/db.js`** e nasce no boot (`create table if not exists`). Não há sistema de migration — decisão registrada na seção 8, não esquecimento.
-2. **A regra acima tem prazo de validade.** No primeiro deploy com dado real de usuário, volta um regime de migration numerada + verificação, e este item é reescrito **antes** desse deploy, não depois.
+1. **Mudança de schema = migration nova no FIM de `MIGRACOES`** (`server/db.js`). Migration que já rodou em produção nunca é editada nem removida: o banco não a roda de novo, e o código passaria a descrever um schema que não existe.
+2. **Migration nova vem com teste** que confere o efeito dela num banco na versão anterior. O boot já recusa migration que falha; o teste é o que pega a que "passa" fazendo a coisa errada.
 3. **Nome de tabela nunca é concatenado a partir de entrada do cliente.** O mapa `RECURSOS` em `db.js` é a única lista branca; recurso fora dela é 404 antes de virar SQL.
 4. **Coluna JSON é declarada no mapa**, com a conversão de borda junto. Coluna JSON que o servidor não declare volta como string para o front e quebra a tela em silêncio (seção 6).
 5. Coluna nova que precise de consulta, índice ou integridade → **coluna tipada**; JSON é só para conteúdo de formulário. Vínculo novo entre tabelas → FK real.
@@ -259,7 +267,7 @@ O servidor é a fonte da verdade; o cache é derivado e descartável. Três obri
 
 ## R7 — Versionamento de assets e release
 
-1. **Um track de versão por página**: `app.html` (`?v=X.Y.Z`, hoje `2.0.0`) e `index.html`. **Toda mudança de CSS/JS bumpa o track inteiro da página afetada** (buscar e substituir).
+1. **Um track de versão por página**: `app.html` (`?v=X.Y.Z`, hoje `2.0.3`) e `index.html`. **Toda mudança de CSS/JS bumpa o track inteiro da página afetada** (buscar e substituir).
 2. O número da versão entra no CHANGELOG do dia — é o elo entre versão em produção e commit.
 3. Correção estrutural planejada (P2 #18): `Cache-Control` de revalidação nos cabeçalhos que `server/index.js` envia, eliminando o `?v=` manual sem criar build step. Ficou mais barata do que era: agora os cabeçalhos são nossos, não de configuração de CDN que não se pode observar.
 
@@ -311,7 +319,7 @@ Backlog priorizado. Cada item aponta a regra que viola. Pagar de cima para baixo
 - **Admin não enxerga o ERP** — **resolvido como intencional em 26/08**: não existe rota de admin para imóvel, cliente, financeiro ou vistoria, e a ausência virou teste. Supervisão de contas não é acesso ao negócio alheio.
 - **`cloud_key` em claro no banco**: o admin não a lê (garantido por teste), mas continua legível por quem tenha o arquivo `data.db`. Cifrar em repouso exige uma chave fora do banco — projeto próprio. **Ficou mais urgente depois de 26/08:** antes era uma linha num Postgres gerenciado; agora é um arquivo na máquina que roda o servidor.
 - **Redefinição de senha por e-mail** (aberta desde 26/08): saiu junto com a Supabase, que era quem enviava o e-mail. Decisão pendente: entra serviço de envio (Resend/SendGrid/SMTP) ou fica com redefinição pelo admin?
-- **Deploy** (aberta desde 26/08): o sistema roda local. A Vercel não serve um processo com banco em arquivo. Escolher host com disco persistente, ou voltar a um banco gerenciado.
+- **Deploy** — resolvido: Render com disco persistente. **Aberto:** cópia de backup para fora do disco (o backup local não sobrevive à perda do disco). Opções: confiar nos snapshots do Render, ou enviar o backup diário para um storage externo (S3/R2/Drive).
 
 ---
 
@@ -322,7 +330,7 @@ Checklist, na ordem. É deliberadamente curto — o objetivo é caber no hábito
 1. **Precisa existir?** Se é especulação ("vai que um dia..."), não entra. Registre a ideia no CHANGELOG como descartada, se valer o registro.
 2. **Já existe?** Procure helper/padrão no núcleo antes de escrever (`Utils`, `Storage`, `CloudDB`, `components.css`). A duplicação nasce aqui.
 3. **Em que camada mora?** (R2). Regra de negócio → núcleo puro. Dados → `Storage`/`CloudDB`. Tela → view da rota. Na dúvida, a resposta certa é a que permite testar com `node`.
-4. **Toca banco?** → schema em `server/db.js` + entrada no mapa `RECURSOS` se for tabela de recurso (R4). Toca dado do inquilino? → as duas camadas de sanitização (R5). Toca rota? → teste de sessão e de escopo (R8.2).
+4. **Toca banco?** → migration nova no fim de `MIGRACOES` + teste dela + entrada no mapa `RECURSOS` se for tabela de recurso (R4). Toca dado do inquilino? → as duas camadas de sanitização (R5). Toca rota? → teste de sessão e de escopo (R8.2).
 5. **Teste** para regra nova/alterada (R8) e rodar `npm test` inteiro.
 6. **Bump de versão** do track da página afetada (R7).
 7. **CHANGELOG** com o quê e o porquê, citando a versão (R9).

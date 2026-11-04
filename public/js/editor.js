@@ -48,6 +48,22 @@ const Editor = {
       const cId = param.split('=')[1];
       this.contract = Storage.getById(cId);
       if (!this.contract) { window.location.hash = '#dashboard'; return; }
+
+      // Da listagem o contrato vem sem as imagens (Storage.carregarCompleto).
+      // O editor mostra e regrava assinaturas, então só abre com elas.
+      if (this.contract.fields && this.contract.fields._midia_omitida) {
+        container.innerHTML = '<div style="text-align:center; padding:5rem 0; color:var(--text-muted);">Carregando contrato...</div>';
+        Storage.carregarCompleto(cId).then(() => {
+          // O usuário pode ter saído da tela enquanto carregava.
+          if (window.location.hash === '#editor?' + param) this.render(container, param);
+        }).catch(err => {
+          container.innerHTML = `<div class="card" style="text-align:center; padding:3rem;">
+            <p>Não foi possível abrir o contrato: ${Utils.esc(err.message || '')}</p>
+            <button class="btn btn-secondary" onclick="App.handleRoute()">Tentar de novo</button>
+          </div>`;
+        });
+        return;
+      }
       this.template = Contracts[this.contract.templateId];
     } else {
       window.location.hash = '#dashboard'; return;

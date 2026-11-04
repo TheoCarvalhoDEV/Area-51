@@ -15,19 +15,26 @@ const TAMANHO_HASH = 64;
 
 // ── Senha ───────────────────────────────────────────────────────────────
 
+// Assíncrono, nunca `scryptSync`: o hash leva ~100ms de propósito, e a versão
+// síncrona segura o event loop esse tempo todo — cada tentativa de login
+// congelava o servidor inteiro para todos os usuários. A assíncrona roda no
+// threadpool do libuv.
 function hashSenha(senha, salt) {
-  return crypto.scryptSync(senha, salt, TAMANHO_HASH, CUSTO).toString('hex');
+  return new Promise((ok, falha) => {
+    crypto.scrypt(senha, salt, TAMANHO_HASH, CUSTO, (err, buf) =>
+      err ? falha(err) : ok(buf.toString('hex')));
+  });
 }
 
-function criarSenha(senha) {
+async function criarSenha(senha) {
   const salt = crypto.randomBytes(16).toString('hex');
-  return { salt, senha_hash: hashSenha(senha, salt) };
+  return { salt, senha_hash: await hashSenha(senha, salt) };
 }
 
 // timingSafeEqual e não `===`: comparar hash byte a byte com saída antecipada
 // vaza, pelo tempo de resposta, quantos caracteres iniciais estavam certos.
-function conferirSenha(senha, salt, esperado) {
-  const a = Buffer.from(hashSenha(senha, salt), 'hex');
+async function conferirSenha(senha, salt, esperado) {
+  const a = Buffer.from(await hashSenha(senha, salt), 'hex');
   const b = Buffer.from(esperado, 'hex');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }

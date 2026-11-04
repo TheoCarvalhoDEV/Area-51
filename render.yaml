@@ -17,6 +17,11 @@ services:
       # Fora de /app de proposito: /app e substituido a cada deploy.
       - key: DB_FILE
         value: /data/data.db
+      # Um proxy (o balanceador do Render) na frente do app. Sem isto o IP de
+      # todo usuario e o do proxy: a evidencia do aceite fica errada e o limite
+      # de login por IP tranca todo mundo junto. Ver server/index.js.
+      - key: TRUST_PROXY
+        value: "1"
     disk:
       name: dados
       mountPath: /data

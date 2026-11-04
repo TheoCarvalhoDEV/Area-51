@@ -11,7 +11,7 @@
 // ═══════════════════════════════════════════════════════
 
 const express = require('express');
-const { db } = require('../db');
+const { db, semMidia } = require('../db');
 const { exigirLogin, exigirAdmin } = require('../sessao');
 
 const router = express.Router();
@@ -30,7 +30,9 @@ router.get('/contracts', (req, res) => {
   res.json(linhas.map(l => {
     let fields = {};
     try { fields = JSON.parse(l.fields); } catch { /* contrato corrompido não derruba a lista */ }
-    return { ...l, fields, is_finalized: !!l.is_finalized };
+    // Sem assinaturas e selfies: a ficha de suporte não as mostra, e o admin
+    // não tem por que receber a foto do rosto de inquilino de outra conta.
+    return { ...l, fields: semMidia(fields), is_finalized: !!l.is_finalized };
   }));
 });
 
