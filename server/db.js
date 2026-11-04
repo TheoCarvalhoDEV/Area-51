@@ -15,8 +15,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ARQUIVO = process.env.DB_FILE || path.join(__dirname, '..', 'data.db');
-// Ao lado do banco por padrão: no Render isso é /data/backups, dentro do disco
-// persistente. Mesmo disco = protege de erro do app (migration ruim, exclusão
+// Ao lado do banco por padrão: no container (Dockerfile) isso é /data/backups,
+// dentro do disco persistente. Mesmo disco = protege de erro do app (migration ruim, exclusão
 // indevida), NÃO de perda do disco — para isso, cópia para fora (ver README).
 const PASTA_BACKUP = process.env.BACKUP_DIR || path.join(path.dirname(ARQUIVO), 'backups');
 const MANTER_BACKUPS = 7;

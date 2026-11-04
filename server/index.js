@@ -21,7 +21,7 @@ app.disable('x-powered-by');
 // o IP carimbado no aceite do inquilino e a chave do limite de login.
 //
 // Sem proxy (rodando local), fica desligado e `req.ip` é o socket. Atrás de
-// proxy (Render), TEM de ser ligado: senão todo mundo aparece com o IP do
+// proxy reverso (qualquer host com balanceador na frente), TEM de ser ligado: senão todo mundo aparece com o IP do
 // proxy — e o limite de login por IP tranca todos os usuários juntos.
 //
 // Nunca `true` e nunca ler o PRIMEIRO item do X-Forwarded-For: esse é escrito

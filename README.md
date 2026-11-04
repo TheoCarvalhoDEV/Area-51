@@ -135,7 +135,7 @@ Automático, em `backups/` ao lado do banco, e cobre **as duas coisas** — `dat
 
 ### Hospedagem
 
-**Ainda não decidida** — hoje o sistema roda local. `Dockerfile` e `render.yaml` estão no repositório como ponto de partida (container + disco persistente em `/data`), não como decisão. Seja qual for o host, ele precisa de disco persistente para o `data.db` e para `uploads/`, e o backup local não sobrevive à perda desse disco.
+**Ainda não decidida** — hoje o sistema roda local. Render e Vercel estão descartados. O `Dockerfile` fica no repositório como ponto de partida genérico (container + disco persistente em `/data`), não como decisão. Seja qual for o host, ele precisa de disco persistente para o `data.db` e para `uploads/`, e o backup local não sobrevive à perda desse disco.
 
 Testes — não exigem instalação, é Node puro:
 

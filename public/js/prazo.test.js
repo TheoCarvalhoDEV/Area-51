@@ -100,8 +100,8 @@ assert.strictEqual(Utils.dataPorExtenso(new Date('2026-08-05T12:00:00')), '05 de
 
 // shareBaseUrl: curto em producao (rota /c em server/index.js), caminho real local
 assert.strictEqual(
-  Utils.shareBaseUrl({ protocol: 'https:', hostname: 'meusimoveis.vercel.app', origin: 'https://meusimoveis.vercel.app', href: 'https://meusimoveis.vercel.app/app.html#x' }),
-  'https://meusimoveis.vercel.app/c');
+  Utils.shareBaseUrl({ protocol: 'https:', hostname: 'meusimoveis.com.br', origin: 'https://meusimoveis.com.br', href: 'https://meusimoveis.com.br/app.html#x' }),
+  'https://meusimoveis.com.br/c');
 assert.strictEqual(
   Utils.shareBaseUrl({ protocol: 'http:', hostname: 'localhost', origin: 'http://localhost:3000', href: 'http://localhost:3000/app.html#x' }),
   'http://localhost:3000/app.html');

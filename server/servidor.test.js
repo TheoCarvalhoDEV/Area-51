@@ -400,7 +400,7 @@ test('o IP da evidencia NAO pode ser forjado pelo inquilino', async () => {
   assert.notStrictEqual(local, '6.6.6.6');
   assert.match(local, /127\.0\.0\.1|::1/);
 
-  // Atras de UM proxy (TRUST_PROXY=1, o Render): vale o item que o proxy
+  // Atras de UM proxy reverso (TRUST_PROXY=1): vale o item que o proxy
   // acrescentou na ponta direita, nunca o que o cliente mandou na esquerda.
   app.set('trust proxy', 1);
   try {
