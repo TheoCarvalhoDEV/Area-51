@@ -12,6 +12,12 @@ Registro de todas as alterações do sistema, para o time ter uma referência ú
 
 ---
 
+## 2026-11-04 — Render e Vercel descartados
+
+Decisão do dono do projeto: **não vamos usar Render nem Vercel.** `render.yaml` saiu (a Vercel já tinha saído em 26/08). O `Dockerfile` fica como ponto de partida genérico para qualquer host com disco persistente; comentários e docs que apontavam o Render como destino foram neutralizados. Hospedagem segue em aberto.
+
+---
+
 ## 2026-11-04 — troca de senha, fim da demonstração e varredura de código morto
 
 Assets e projeto: 2.3.0 → **2.4.0**. Varredura feita com o agente `dead-code-finder` e a auditoria `ponytail-audit`; cada achado reconferido por busca antes de sair.
