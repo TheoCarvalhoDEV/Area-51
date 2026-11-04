@@ -19,10 +19,6 @@
   margin-bottom: 2.5rem;
 }
 
-.form-group-full {
-  grid-column: 1 / -1;
-}
-
 /* Espaçamento extra no fundo da tela admin mobile para não sobrepor a bottom nav */
 @media(max-width: 768px) {
   .admin-container {

@@ -3,17 +3,16 @@
 // ═══════════════════════════════════════════════════════
 
 const CloudDB = {
-  // Import raw 256-bit key (32 bytes) from key string
+  // Chave AES-256 a partir da string do link. Dois formatos convivem:
+  // - atual: 32 bytes aleatórios em base64url (43 caracteres) — 256 bits reais;
+  // - legado: 16 caracteres alfanuméricos completados com zeros até 32 bytes
+  //   (~95 bits). Continua sendo lido para os links já enviados abrirem.
   async _importKey(keyString) {
-    const enc = new TextEncoder();
-    let rawKey = enc.encode(keyString);
-    // Pad or truncate rawKey to 32 bytes
-    if (rawKey.length < 32) {
-      const padded = new Uint8Array(32);
-      padded.set(rawKey);
-      rawKey = padded;
-    } else if (rawKey.length > 32) {
-      rawKey = rawKey.slice(0, 32);
+    let rawKey;
+    if (/^[A-Za-z0-9_-]{43}$/.test(keyString)) {
+      rawKey = this._base64ToUint8(keyString.replace(/-/g, '+').replace(/_/g, '/') + '=');
+    } else {
+      rawKey = this._chaveLegada(keyString);
     }
     return window.crypto.subtle.importKey(
       "raw",
@@ -22,6 +21,18 @@ const CloudDB = {
       false,
       ["encrypt", "decrypt"]
     );
+  },
+
+  _chaveLegada(keyString) {
+    let rawKey = new TextEncoder().encode(keyString);
+    if (rawKey.length < 32) {
+      const padded = new Uint8Array(32);
+      padded.set(rawKey);
+      rawKey = padded;
+    } else if (rawKey.length > 32) {
+      rawKey = rawKey.slice(0, 32);
+    }
+    return rawKey;
   },
 
   _uint8ToBase64(bytes) {
@@ -115,27 +126,16 @@ const CloudDB = {
     return payload;
   },
 
-  // Generate a random 16 character alphanumeric secret key (CSPRNG)
+  // Chave nova: 32 bytes de CSPRNG em base64url (43 caracteres), usados direto
+  // como chave AES-256 — sem completar com zeros e sem o viés do `% 62`.
   generateKey() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
-    let key = '';
-    for (let i = 0; i < 16; i++) {
-      key += chars.charAt(bytes[i] % chars.length);
-    }
-    return key;
+    const bytes = window.crypto.getRandomValues(new Uint8Array(32));
+    return this._uint8ToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   },
 
-  // ID aleatório (não-enumerável) para o link — sempre via CSPRNG (getRandomValues/randomUUID)
+  // ID aleatório (não-enumerável) para o link — UUID v4 de CSPRNG.
   _randomId() {
-    if (window.crypto.randomUUID) return window.crypto.randomUUID();
-    // Fallback (contexto não-seguro / Safari antigo): mesmo formato UUID v4 do
-    // randomUUID, para todo id de link ter a mesma cara.
-    const b = window.crypto.getRandomValues(new Uint8Array(16));
-    b[6] = (b[6] & 0x0f) | 0x40; // versão 4
-    b[8] = (b[8] & 0x3f) | 0x80; // variante RFC 4122
-    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
-    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    return Utils.generateId();
   },
 
   // Prova de posse da chave (server/rotas/links.js). Mandamos SHA-256(chave) em hex; o

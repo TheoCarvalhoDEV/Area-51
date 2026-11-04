@@ -4,25 +4,28 @@
 
 const Utils = {
   // ── Máscaras de Input ──
+  // CPF/CNPJ vêm do @brazilian-utils (public/vendor/libs.js). `version: 2` é o
+  // CNPJ alfanumérico, emitido desde julho de 2026: sem ele as letras somem.
   maskCPF(v) {
-    return v.replace(/\D/g,'').replace(/(\d{3})(\d)/,'$1.$2')
-      .replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2').slice(0,14);
+    return Libs.formatCpf(String(v || ''));
   },
   maskCNPJ(v) {
-    return v.replace(/\D/g,'').replace(/^(\d{2})(\d)/,'$1.$2')
-      .replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3')
-      .replace(/\.(\d{3})(\d)/,'.$1/$2')
-      .replace(/(\d{4})(\d)/,'$1-$2').slice(0,18);
+    return Libs.formatCnpj(String(v || ''), { version: 2 });
+  },
+  // O documento sem máscara, mantendo as letras do CNPJ alfanumérico.
+  docLimpo(v) {
+    return String(v || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+  },
+  // Letra só existe em CNPJ; sem letra, mais de 11 caracteres também é CNPJ.
+  ehCNPJ(v) {
+    const d = Utils.docLimpo(v);
+    return d.length > 11 || /[A-Z]/.test(d);
   },
   maskCPFCNPJ(v) {
-    const digits = v.replace(/\D/g,'');
-    return digits.length <= 11 ? Utils.maskCPF(v) : Utils.maskCNPJ(v);
+    return Utils.ehCNPJ(v) ? Utils.maskCNPJ(v) : Utils.maskCPF(v);
   },
   maskCurrency(v) {
-    let d = String(v || '').replace(/\D/g,'');
-    if (!d) return 'R$ 0,00';
-    d = (parseInt(d) / 100).toFixed(2);
-    return 'R$ ' + d.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return Utils.formatCurrency(Utils.parseMoneyBRL(v));
   },
   // Formata um valor em REAIS. Todo call site passa reais: número do JS
   // (soma, reajuste) ou coluna `numeric` do Postgres.
@@ -61,13 +64,12 @@ const Utils = {
     return d.toLocaleDateString('pt-BR');
   },
   formatRelativeDate(date) {
-    const now = new Date();
-    const d = new Date(date);
-    const diff = Math.floor((now - d) / 1000);
+    const diff = Math.floor((Date.now() - new Date(date)) / 1000);
     if (diff < 60) return 'agora';
-    if (diff < 3600) return Math.floor(diff/60) + ' min atrás';
-    if (diff < 86400) return Math.floor(diff/3600) + 'h atrás';
-    if (diff < 604800) return Math.floor(diff/86400) + 'd atrás';
+    const rtf = new Intl.RelativeTimeFormat('pt-BR', { style: 'short' });
+    if (diff < 3600) return rtf.format(-Math.floor(diff / 60), 'minute');
+    if (diff < 86400) return rtf.format(-Math.floor(diff / 3600), 'hour');
+    if (diff < 604800) return rtf.format(-Math.floor(diff / 86400), 'day');
     return Utils.formatDate(date);
   },
 
@@ -77,39 +79,13 @@ const Utils = {
   isPJLocador(fields) {
     fields = fields || {};
     if (fields.tipo_locador) return fields.tipo_locador === 'pj';
-    return (fields.doc_locador || '').replace(/\D/g, '').length > 11;
+    return Utils.ehCNPJ(fields.doc_locador);
   },
   isValidCPF(cpf) {
-    cpf = cpf.replace(/\D/g,'');
-    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-    let sum = 0;
-    for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
-    let rest = (sum * 10) % 11;
-    if (rest === 10) rest = 0;
-    if (rest !== parseInt(cpf[9])) return false;
-    sum = 0;
-    for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
-    rest = (sum * 10) % 11;
-    if (rest === 10) rest = 0;
-    return rest === parseInt(cpf[10]);
+    return Libs.isValidCpf(String(cpf || ''));
   },
-
   isValidCNPJ(cnpj) {
-    cnpj = (cnpj || '').replace(/\D/g, '');
-    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
-    const digito = (base) => {
-      // pesos do CNPJ: 5..2,9..2 para o 1º dígito; 6,5..2,9..2 para o 2º
-      let peso = base.length - 7;
-      let sum = 0;
-      for (let i = 0; i < base.length; i++) {
-        sum += parseInt(base[i]) * peso--;
-        if (peso < 2) peso = 9;
-      }
-      const rest = sum % 11;
-      return rest < 2 ? 0 : 11 - rest;
-    };
-    if (digito(cnpj.slice(0, 12)) !== parseInt(cnpj[12])) return false;
-    return digito(cnpj.slice(0, 13)) === parseInt(cnpj[13]);
+    return Libs.isValidCnpj(String(cnpj || ''), { version: 2 });
   },
 
   // ── Aplicar Máscaras em Inputs ──
@@ -132,80 +108,59 @@ const Utils = {
   // ── Pad de assinatura manuscrita (canvas) — usado pelo locador e pelo inquilino ──
   // onChange(dataUrl) roda a cada traço solto; quem chama decide onde salvar
   // (contract.fields.assinatura_locador ou .assinatura_locatario).
+  //
+  // O traço é do `signature_pad` (public/vendor/libs.js): pointer events (mouse,
+  // dedo e caneta), traço suavizado e canvas na densidade real da tela.
   wireSignaturePad(canvas, placeholder, initialDataUrl, onChange) {
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let isDrawing = false;
-    let hasDrawn = false;
+    const ALTURA = 150;
+    canvas.style.height = ALTURA + 'px';
+    canvas.style.touchAction = 'none';   // o dedo assina, não rola a página
 
-    const resizeCanvas = () => {
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width > 0 && canvas.width !== rect.width) {
-        canvas.width = rect.width;
-        canvas.height = 150;
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#143A66';
-      }
-    };
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    if (canvas._pad) canvas._pad.off();   // religado no mesmo canvas: sem traço em dobro
+    const pad = new Libs.SignaturePad(canvas, { penColor: '#143A66', minWidth: 1, maxWidth: 3 });
+    canvas._pad = pad;
+    // A assinatura inteira como imagem: é o que se redesenha quando o canvas
+    // muda de tamanho, porque mudar `canvas.width` apaga o desenho.
+    canvas._ultima = initialDataUrl || null;
+    let larguraCss = 0;
 
-    if (initialDataUrl) {
-      const img = new Image();
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-        if (placeholder) placeholder.style.display = 'none';
-        hasDrawn = true;
-      };
-      img.src = initialDataUrl;
-    }
-
-    const getPos = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return { x: clientX - rect.left, y: clientY - rect.top };
+    const redesenhar = () => {
+      if (!canvas._ultima) return;
+      pad.fromDataURL(canvas._ultima, { width: larguraCss, height: ALTURA })
+        .then(() => { if (placeholder) placeholder.style.display = 'none'; })
+        .catch(() => { /* imagem inválida: fica o canvas em branco */ });
     };
 
-    const startDraw = (e) => {
-      isDrawing = true;
-      const pos = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-      if (placeholder) placeholder.style.display = 'none';
+    // ponytail: densidade limitada a 2 — a 3x o PNG da assinatura engorda o
+    // payload do link (teto de 512 KB) sem diferença visível no contrato.
+    const ajustar = () => {
+      if (!canvas.isConnected) return window.removeEventListener('resize', ajustar);
+      const largura = Math.round(canvas.getBoundingClientRect().width);
+      if (!largura || largura === larguraCss) return;  // barra do celular sumindo não redimensiona
+      larguraCss = largura;
+      const r = Math.min(Math.max(window.devicePixelRatio || 1, 1), 2);
+      canvas.width = largura * r;
+      canvas.height = ALTURA * r;
+      canvas.getContext('2d').scale(r, r);
+      pad.clear();
+      redesenhar();
     };
+    ajustar();
+    window.addEventListener('resize', ajustar);
 
-    const moveDraw = (e) => {
-      if (!isDrawing) return;
-      e.preventDefault();
-      const pos = getPos(e);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-      hasDrawn = true;
-    };
-
-    const stopDraw = () => {
-      if (!isDrawing) return;
-      isDrawing = false;
-      if (hasDrawn) onChange(canvas.toDataURL('image/png'));
-    };
-
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', moveDraw);
-    canvas.addEventListener('mouseup', stopDraw);
-    canvas.addEventListener('mouseleave', stopDraw);
-
-    canvas.addEventListener('touchstart', startDraw, { passive: false });
-    canvas.addEventListener('touchmove', moveDraw, { passive: false });
-    canvas.addEventListener('touchend', stopDraw);
+    pad.addEventListener('beginStroke', () => { if (placeholder) placeholder.style.display = 'none'; });
+    pad.addEventListener('endStroke', () => {
+      canvas._ultima = pad.toDataURL('image/png');
+      onChange(canvas._ultima);
+    });
   },
 
   clearSignaturePad(canvas, placeholder) {
     if (canvas) {
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas._ultima = null;
+      if (canvas._pad) canvas._pad.clear();
+      else canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     }
     if (placeholder) placeholder.style.display = 'flex';
   },
@@ -236,6 +191,19 @@ const Utils = {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   },
+  // Uma linha "rótulo: valor" dos painéis "Ver" de imóvel, cliente e modelo.
+  // Vive aqui porque as três telas mostram a mesma coisa da mesma forma, e três
+  // cópias divergiriam na primeira vez que alguém mexesse numa delas. Campo em
+  // branco vira travessão: espaço vazio deixa dúvida se é "não preenchido" ou
+  // se a tela quebrou.
+  linhaDetalhe(rotulo, valor) {
+    const vazio = valor === null || valor === undefined || valor === '';
+    return `<div class="detalhe-linha">
+      <dt>${this.esc(rotulo)}</dt>
+      <dd>${vazio ? '<span class="text-muted">—</span>' : this.esc(valor)}</dd>
+    </div>`;
+  },
+
   // ── Imagem vinda de dado não confiável ──────────────────────────────────
   // Regra canônica: só as três formas que o próprio fluxo gera (canvas
   // .toDataURL e câmera). SVG fica de fora de propósito — carrega script.
@@ -250,7 +218,53 @@ const Utils = {
   imgSeguro(dataUrl, alt, style) {
     if (typeof dataUrl !== 'string') return '';
     if (!Utils.IMG_DATA_URL_OK.test(dataUrl)) return '';
-    return `<img src="${dataUrl}" alt="${Utils.esc(alt || '')}" style="${Utils.esc(style || '')}">`;
+    // Clicar amplia. O handler recebe o ELEMENTO (`this`), nunca a URL: a
+    // selfie tem ~30 KB de base64, e enfiar isso dentro de um atributo onclick
+    // seria enorme e ainda faria dado do inquilino virar código.
+    return `<img src="${dataUrl}" alt="${Utils.esc(alt || '')}"` +
+      ` style="${Utils.esc(style || '')}" class="img-ampliavel"` +
+      ` title="Clique para ampliar" onclick="Utils.ampliarImagem(this)">`;
+  },
+
+  // ── Ampliar uma imagem em tela cheia ────────────────────────────────────
+  //
+  // A selfie de validação sai com 100px de altura no certificado — tamanho de
+  // documento impresso, não de conferência. Quem precisa comparar o rosto com o
+  // documento na mão precisa ver grande, e a folha não pode crescer por isso.
+  //
+  // Recebe o <img> clicado, não a URL: assim serve para a selfie e a rubrica
+  // (data: URL de 30 KB) e para a foto de vistoria (rota autenticada) sem que o
+  // chamador precise saber a diferença.
+  ampliarImagem(el) {
+    if (!el || !el.src) return;
+
+    let caixa = document.getElementById('zoom-imagem');
+    if (!caixa) {
+      caixa = document.createElement('div');
+      caixa.id = 'zoom-imagem';
+      caixa.className = 'modal-backdrop zoom-backdrop';
+      // Clicar em qualquer lugar fecha — inclusive na própria imagem. Não há o
+      // que fazer aqui além de olhar e sair.
+      caixa.onclick = () => Utils.fecharZoom();
+      document.body.appendChild(caixa);
+    }
+
+    caixa.innerHTML = `<img src="${el.src}" alt="${Utils.esc(el.alt || '')}" class="zoom-img">`;
+    caixa.style.display = 'flex';
+
+    // Esc fecha, e o ouvinte se remove sozinho: sobrar ouvinte em documento que
+    // re-renderiza a cada clique é vazamento silencioso.
+    Utils._zoomEsc = (e) => { if (e.key === 'Escape') Utils.fecharZoom(); };
+    document.addEventListener('keydown', Utils._zoomEsc);
+  },
+
+  fecharZoom() {
+    const caixa = document.getElementById('zoom-imagem');
+    if (caixa) { caixa.style.display = 'none'; caixa.innerHTML = ''; }
+    if (Utils._zoomEsc) {
+      document.removeEventListener('keydown', Utils._zoomEsc);
+      Utils._zoomEsc = null;
+    }
   },
 
   // ── Lista branca do que o inquilino escreve ─────────────────────────────
@@ -310,22 +324,12 @@ const Utils = {
   },
 
   // ── Número por extenso (1..99) ──
-  // ponytail: 1..99 cobre o universo real de um prazo de locação.
-  // Se um dia precisar de 100+, reaproveitar o convertGroup de writeBRLInWords.
+  // O extenso é do @brazilian-utils; a faixa 1..99 é regra de prazo de
+  // locação (a tela não oferece mais que isso), não limite da biblioteca.
   numeroPorExtenso(n) {
     n = parseInt(n, 10);
     if (!n || n < 1 || n > 99) return '';
-
-    const units = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
-    const teens = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
-    const tens = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
-
-    const t = Math.floor(n / 10);
-    const u = n % 10;
-
-    if (t === 0) return units[u];
-    if (t === 1) return teens[u];
-    return u > 0 ? tens[t] + ' e ' + units[u] : tens[t];
+    return Libs.convertNumberToWords(n);
   },
 
   // ── Prazo -> frase do contrato: (18,'meses') => "18 (dezoito) meses" ──
@@ -396,8 +400,15 @@ const Utils = {
   // (file:// ou localhost) mantém o caminho real.
   shareBaseUrl(loc) {
     loc = loc || window.location;
-    const local = loc.protocol === 'file:' || /^(localhost|127\.)/.test(loc.hostname);
-    return local ? loc.href.split('#')[0] : loc.origin + '/c';
+    return Utils.ehLocal(loc) ? loc.href.split('#')[0] : loc.origin + '/c';
+  },
+
+  // Rodando na máquina de quem desenvolve? Decide o formato do link do
+  // inquilino e a exibição do botão de contrato de teste — ferramenta de teste
+  // no painel de um locador de verdade é dado falso esperando ser confundido.
+  ehLocal(loc) {
+    loc = loc || window.location;
+    return loc.protocol === 'file:' || /^(localhost|127\.|\[?::1)/.test(loc.hostname);
   },
 
   // ── Modal de Compartilhamento do Link (Substitui prompt nativo no celular) ──
@@ -545,8 +556,17 @@ const Utils = {
   },
 
   // ── IDs ──
+  // UUID v4 de CSPRNG. Ids viajam em link e o servidor só barra id de outra
+  // conta — Math.random() deixava o id previsível.
   generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    if (crypto.randomUUID) return crypto.randomUUID();
+    // Fallback: randomUUID só existe em contexto seguro (HTTPS/localhost), e o
+    // app também é aberto pelo IP da rede local. getRandomValues existe em ambos.
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40; // versão 4
+    b[8] = (b[8] & 0x3f) | 0x80; // variante RFC 4122
+    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
   },
 
   // ── Obter Status do Contrato ──
@@ -593,131 +613,27 @@ const Utils = {
   },
 
   // ── Escrever valor BRL por extenso ──
+  // O extenso é do @brazilian-utils (public/vendor/libs.js). Ele acerta o
+  // plural que a versão feita à mão errava: "mil e um reais", não "real".
   writeBRLInWords(amountStr) {
     if (!amountStr) return '';
     // Aceita número também (ex.: rent_value 1500 vindo do cadastro de imóvel).
     // ATENÇÃO: número é tratado como REAIS; string mascarada tem os centavos embutidos.
-    if (typeof amountStr === 'number') amountStr = Utils.formatCurrency(amountStr);
-    const digits = String(amountStr).replace(/\D/g, '');
-    if (!digits || parseInt(digits) === 0) return '';
-    
-    const value = parseInt(digits) / 100;
-    const integerPart = Math.floor(value);
-    const centsPart = Math.round((value - integerPart) * 100);
-
-    const units = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
-    const tens = ['', 'dez', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
-    const teens = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
-    const hundreds = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
-
-    function convertGroup(n) {
-      if (n === 0) return '';
-      if (n === 100) return 'cem';
-      
-      let out = [];
-      const h = Math.floor(n / 100);
-      const t = Math.floor((n % 100) / 10);
-      const u = n % 10;
-      
-      if (h > 0) out.push(hundreds[h]);
-      
-      if (t === 1) {
-        out.push(teens[u]);
-      } else {
-        if (t > 0) out.push(tens[t]);
-        if (u > 0) out.push(units[u]);
-      }
-      
-      return out.join(' e ');
-    }
-
-    let result = [];
-    let tempInt = integerPart;
-    const groups = [];
-    while (tempInt > 0) {
-      groups.push(tempInt % 1000);
-      tempInt = Math.floor(tempInt / 1000);
-    }
-    
-    const groupNamesSingular = ['real', 'mil', 'milhão', 'bilhão'];
-    const groupNamesPlural = ['reais', 'mil', 'milhões', 'bilhões'];
-    
-    if (integerPart > 0) {
-      for (let i = 0; i < groups.length; i++) {
-        const val = groups[i];
-        if (val === 0) continue;
-        
-        let text = convertGroup(val);
-        if (i === 1 && val === 1) {
-          text = 'mil';
-        } else {
-          const suffix = val === 1 ? groupNamesSingular[i] : groupNamesPlural[i];
-          text = text + ' ' + suffix;
-        }
-        groups[i] = text;
-      }
-      
-      const activeGroups = [];
-      for (let i = groups.length - 1; i >= 0; i--) {
-        if (groups[i]) {
-          activeGroups.push({ val: Math.floor(integerPart / Math.pow(1000, i)) % 1000, text: groups[i], idx: i });
-        }
-      }
-      
-      let intText = '';
-      for (let k = 0; k < activeGroups.length; k++) {
-        if (k > 0) {
-          const current = activeGroups[k];
-          if (k === activeGroups.length - 1 && (current.val < 100 || current.val % 100 === 0)) {
-            intText += ' e ';
-          } else {
-            intText += ' ';
-          }
-        }
-        intText += activeGroups[k].text;
-      }
-      
-      if (!groups[0]) {
-        const lowestIdx = activeGroups[activeGroups.length - 1].idx;
-        if (lowestIdx === 1) {
-          intText += ' reais';
-        } else if (lowestIdx > 1) {
-          intText += ' de reais';
-        }
-      }
-      result.push(intText);
-    }
-    
-    if (centsPart > 0) {
-      const centsText = convertGroup(centsPart) + (centsPart === 1 ? ' centavo' : ' centavos');
-      if (result.length > 0) {
-        result.push(' e ' + centsText);
-      } else {
-        result.push(centsText);
-      }
-    }
-    
-    return result.join('');
+    const valor = typeof amountStr === 'number' ? amountStr : Utils.parseMoneyBRL(amountStr);
+    return valor > 0 ? Libs.convertCurrencyToWords(valor) : '';
   },
 
   // ── Obter IP Público (com múltiplos provedores de fallback e timeout) ──
   async getIP() {
-    const fetchWithTimeout = (url, parseFn, ms = 3000) => {
-      return Promise.race([
-        fetch(url).then(r => r.json()).then(parseFn),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-      ]);
-    };
-
-    try {
-      return await fetchWithTimeout('https://api.ipify.org?format=json', d => d.ip, 3500);
-    } catch (e1) {
+    // AbortSignal.timeout cancela a requisição de fato; o Promise.race de antes
+    // só parava de esperar e deixava a conexão pendurada.
+    for (const url of ['https://api.ipify.org?format=json', 'https://ipapi.co/json/']) {
       try {
-        return await fetchWithTimeout('https://ipapi.co/json/', d => d.ip, 3500);
-      } catch (e2) {
-        return 'Não detectado (conexão/bloqueador)';
-      }
+        const d = await fetch(url, { signal: AbortSignal.timeout(3500) }).then(r => r.json());
+        if (d && d.ip) return d.ip;
+      } catch (e) { /* próximo provedor */ }
     }
+    return 'Não detectado (conexão/bloqueador)';
   },
 
   // ── Obter Coordenadas GPS (com permissão e timeout estendido) ──
@@ -747,18 +663,10 @@ const Utils = {
     const clean = String(cep).replace(/\D/g, '');
     if (clean.length !== 8) return null;
 
-    const fetchWithTimeout = (url, ms = 4000) => {
-      return Promise.race([
-        fetch(url).then(r => {
-          if (!r.ok) throw new Error('Falha na consulta');
-          return r.json();
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout ViaCEP')), ms))
-      ]);
-    };
-
     try {
-      const data = await fetchWithTimeout(`https://viacep.com.br/ws/${clean}/json/`);
+      const r = await fetch(`https://viacep.com.br/ws/${clean}/json/`, { signal: AbortSignal.timeout(4000) });
+      if (!r.ok) throw new Error('Falha na consulta');
+      const data = await r.json();
       if (data && !data.erro) {
         return {
           logradouro: data.logradouro || '',
@@ -878,6 +786,135 @@ const Utils = {
     });
   },
 
+  // O que ainda falta para poder mandar o contrato ao inquilino.
+  //
+  // O aceite dele só tem valor se os termos essenciais já estiverem no
+  // documento que ele lê — por isso a porta existe. Mas ela só pode cobrar o
+  // que o MODELO tem: a minuta simples não possui campo de dia de vencimento, e
+  // a lista fixa exigia esse campo mesmo assim — nenhum contrato daquele modelo
+  // conseguia gerar link, pedindo um campo que não existe no formulário.
+  faltamParaOLink(fields, tpl) {
+    fields = fields || {};
+    const tem = (nome) => !!(tpl && (tpl.fields || []).some(c => c.name === nome));
+    const exigir = (nome, rotulo) => tem(nome) && !fields[nome] && rotulo;
+
+    return [
+      exigir('valor_aluguel', 'Valor do aluguel'),
+      exigir('end_imovel', 'Endereço do imóvel'),
+      exigir('data_inicio', 'Data de início'),
+      !(Utils.mesesDoContrato(fields) > 0) && 'Prazo do contrato',
+      exigir('dia_vencimento', 'Dia de vencimento')
+    ].filter(Boolean);
+  },
+
+  // ── Contrato de teste ───────────────────────────────────────────────────
+  //
+  // Preenche um modelo inteiro com dados plausíveis, para não digitar 40 campos
+  // a cada vez que se quer testar o fluxo do inquilino.
+  //
+  // Os valores saem da DEFINIÇÃO do modelo (tipo, máscara, nome do campo), não
+  // de uma lista fixa: uma fixture com os 86 campos dos três modelos ficaria
+  // desatualizada no primeiro campo novo, e o teste passaria mentindo. Aqui,
+  // campo novo no modelo nasce preenchido sozinho.
+  //
+  // Fica em Utils (e não numa tela) porque quem chama é a tela E o teste.
+  dadosDeTeste(templateId) {
+    const tpl = (typeof Contracts !== 'undefined' && Contracts[templateId]) || null;
+    if (!tpl) return null;
+
+    const hoje = new Date();
+    const iso = (d) => d.toISOString().slice(0, 10);
+
+    const f = {};
+    tpl.fields.forEach(campo => {
+      f[campo.name] = Utils._valorDeTeste(campo, iso(hoje));
+    });
+
+    // Campos que o editor deriva de outros quando o locador digita. Sem isto o
+    // contrato de teste nasce com prazo e valor por extenso em branco — e é
+    // justamente o que o inquilino lê antes de assinar.
+    if ('data_termino' in f) f.data_termino = Utils.calcularDataTermino(f) || f.data_termino;
+    if ('valor_extenso' in f && f.valor_aluguel) f.valor_extenso = Utils.writeBRLInWords(f.valor_aluguel);
+    if ('valor_bonus_extenso' in f && f.valor_bonus) f.valor_bonus_extenso = Utils.writeBRLInWords(f.valor_bonus);
+    if ('data_assinatura' in f) f.data_assinatura = Utils.dataPorExtenso(hoje);
+
+    return f;
+  },
+
+  // Um valor para um campo, na ordem em que a informação é confiável:
+  // máscara > tipo > nome > rótulo.
+  _valorDeTeste(campo, hojeISO) {
+    const nome = campo.name;
+
+    if (campo.mask === 'cpfcnpj') return nome.indexOf('locador') >= 0 ? '529.982.247-25' : '111.444.777-35';
+    if (campo.mask === 'currency') return nome.indexOf('bonus') >= 0 ? 'R$ 150,00' : 'R$ 1.500,00';
+
+    if (campo.type === 'select') {
+      // Primeira opção com valor de verdade: a primeira costuma ser "Selecione...".
+      const op = (campo.options || []).find(o => o.value !== '' && o.value != null);
+      return op ? op.value : '';
+    }
+
+    if (campo.type === 'date') return hojeISO;
+
+    if (campo.type === 'number') {
+      if (nome.indexOf('dia_vencimento') >= 0) return '10';
+      if (nome.indexOf('prazo') >= 0) return '12';
+      return '1';
+    }
+
+    // Texto: alguns campos alimentam regra de negócio ou saem no PDF em lugar
+    // visível, e "teste" ali atrapalha mais que ajuda.
+    const porNome = {
+      nome_locador: 'Locador de Teste',
+      nome_locatario: 'Locatária de Teste',
+      nome_fiador: 'Fiador de Teste',
+      rg_locador: '12.345.678 SSP/MT',
+      rg_locatario: '98.765.432 SSP/MT',
+      rg_fiador: '11.222.333 SSP/MT',
+      prof_locatario: 'Analista',
+      prof_locador: 'Administrador',
+      cep_imovel: '78200-000',
+      end_imovel: 'Rua de Teste, 100, Centro, Cáceres - MT',
+      desc_imovel: 'Imóvel urbano de uso residencial, em bom estado de conservação.',
+      foro_cidade: 'Cáceres',
+      mat_agua: '000000',
+      uc_energia: '0000000',
+      banco_locador: 'Banco de Teste',
+      agencia_locador: '0001',
+      conta_locador: '12345-6',
+      pix_locador: 'teste@exemplo.com',
+      titular_conta: 'Locador de Teste'
+    };
+    if (porNome[nome]) return porNome[nome];
+
+    // Sobrou: o rótulo do próprio campo, marcado como teste. Fica óbvio na tela
+    // que aquilo não é dado real — que é o ponto de um contrato de teste.
+    return (campo.label || nome).replace(/\s*\(.*\)\s*$/, '') + ' (teste)';
+  },
+
+  // "27 de agosto de 2026" — formato que o contrato usa no fecho.
+  dataPorExtenso(d) {
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  },
+
+  // O IP carimbado pelo servidor, como ele deve aparecer numa folha de prova.
+  // Endereço de loopback ou de rede privada NÃO identifica origem externa: o
+  // inquilino assinou na mesma máquina (ou na mesma rede) do servidor. Imprimir
+  // "::1" cru sugere um endereço de internet e é pior que dizer o que é —
+  // certificado que insinua mais do que sabe não vale o papel.
+  ipDeEvidencia(ip) {
+    if (!ip) return 'Não registrado pelo servidor';
+    const limpo = String(ip).replace(/^::ffff:/i, '').trim();
+    if (limpo === '::1' || /^127\./.test(limpo)) {
+      return limpo + ' — mesma máquina do servidor, não identifica origem externa';
+    }
+    if (/^(10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2[0-9]|3[01])\.|f[cd])/i.test(limpo)) {
+      return limpo + ' — rede local do servidor, não identifica origem externa';
+    }
+    return limpo;
+  },
+
   // ── Renderizar Folha de Certificado de Assinatura Eletrônica ──
   renderCertificadoHTML(fields) {
     fields = fields || {};
@@ -894,7 +931,7 @@ const Utils = {
     const dataAceite = fields.aceite_ts_servidor
       ? new Date(fields.aceite_ts_servidor).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
       : 'Não registrado pelo servidor';
-    const ip = fields.ip_servidor || 'Não registrado pelo servidor';
+    const ip = Utils.ipDeEvidencia(fields.ip_servidor);
     const gpsStr = fields.geo_lat && fields.geo_lng ? `${fields.geo_lat}, ${fields.geo_lng} (Precisão ±${fields.geo_acc || 0}m)` : 'Não fornecido pelo dispositivo';
     const hashDoc = fields.aceite_hash ? fields.aceite_hash.toUpperCase() : 'N/A';
     const userAgent = fields.user_agent || navigator.userAgent;

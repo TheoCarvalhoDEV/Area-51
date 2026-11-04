@@ -204,10 +204,6 @@ const Financeiro = {
     const regs = this.doMes(this.mes);
     if (!regs.length) return;
 
-    const campo = (v) => {
-      const t = String(v == null ? '' : v);
-      return /[";\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
-    };
     const linhas = [['Inquilino', 'Contrato', 'Vencimento', 'Valor', 'Situacao', 'Pago em']];
     regs.forEach(r => linhas.push([
       r.tenant_name || '',
@@ -219,7 +215,9 @@ const Financeiro = {
     ]));
 
     // BOM na frente: sem ele o Excel abre os acentos errados.
-    const csv = '﻿' + linhas.map(l => l.map(campo).join(';')).join('\r\n');
+    // escapeFormulae: o nome do inquilino vem do link que ELE preenche, e um
+    // "=HYPERLINK(...)" viraria fórmula ao o locador abrir no Excel.
+    const csv = '﻿' + Libs.Papa.unparse(linhas, { delimiter: ';', newline: '\r\n', escapeFormulae: true });
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;

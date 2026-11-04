@@ -391,14 +391,5 @@ const Dashboard = {
         </section>
       </div>
     `;
-  },
-
-  deleteContract(id) {
-    if (confirm('Tem certeza que deseja excluir este contrato permanentemente?')) {
-      Storage.delete(id);
-      // Re-renderizar o dashboard
-      this.render(document.getElementById('main-content') || document.body);
-      App.reaplicarBusca();
-    }
   }
 };

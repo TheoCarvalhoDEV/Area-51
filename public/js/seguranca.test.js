@@ -73,6 +73,13 @@ assert.ok(tag.startsWith('<img src="data:image/png;base64,'), 'monta a tag');
 assert.ok(tag.includes('alt="Assinatura"'), 'alt presente');
 assert.ok(tag.includes('style="max-height: 55px;"'), 'style presente');
 
+// Clicar amplia — e o handler recebe o ELEMENTO, nunca a URL. A selfie tem
+// ~30 KB de base64: dentro de um atributo onclick isso seria enorme e, pior,
+// faria dado do inquilino virar codigo.
+assert.ok(tag.includes('onclick="Utils.ampliarImagem(this)"'), 'clique amplia');
+assert.ok(!tag.includes("ampliarImagem('data:"), 'a URL NAO entra no onclick');
+assert.ok(tag.includes('class="img-ampliavel"'), 'o cursor vem de classe, nao de style sujo');
+
 // injecao pela data-URL: nao sai tag nenhuma
 assert.strictEqual(Utils.imgSeguro('data:image/png;base64,AA" onerror="alert(1)', 'x', 'y'), '',
   'data-URL adulterada nao vira tag');
@@ -111,4 +118,22 @@ assert.strictEqual(Utils.imgSeguro('data:image/gif;base64,R0lGOD', '', ''), '');
     `${arquivo}: value="\${...}" sem Utils.esc — a aspa do dado fecha o atributo`);
 });
 
-console.log('ok — seguranca: sanitizacao de fronteira + imgSeguro nos sinks + atributos escapados');
+// ═══ Chave do link: formato novo (256 bits) e legado (16 chars) abrem ═══
+// O legado tem de continuar decifrando: ha links ja enviados com ele.
+global.window = global.window || {};
+global.window.crypto = globalThis.crypto;
+(async () => {
+  const nova = CloudDB.generateKey();
+  assert.match(nova, /^[A-Za-z0-9_-]{43}$/, 'chave nova: 32 bytes em base64url');
+  assert.notStrictEqual(CloudDB.generateKey(), nova);
+  const dado = { fields: { nome_locatario: 'Fulana', valor: 'R$ 1.000,00' } };
+  assert.deepStrictEqual(await CloudDB.decrypt(await CloudDB.encrypt(dado, nova), nova), dado);
+
+  const legada = 'Ab3dEf6hIj9kLm2n';
+  assert.deepStrictEqual(await CloudDB.decrypt(await CloudDB.encrypt(dado, legada), legada), dado);
+  await assert.rejects(CloudDB.decrypt(await CloudDB.encrypt(dado, nova), legada), 'chave errada nao decifra');
+
+  assert.match(Utils.generateId(), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+
+  console.log('ok — seguranca: sanitizacao de fronteira + imgSeguro nos sinks + atributos escapados + chave do link');
+})().catch(e => { console.error(e); process.exit(1); });

@@ -528,14 +528,16 @@ const Tenant = {
     let errorMsg = '';
 
     document.querySelectorAll('input[data-mask="cpfcnpj"]').forEach(el => {
-      const val = el.value.replace(/\D/g, '');
+      // docLimpo e não \D: o CNPJ alfanumérico tem letras.
+      const val = Utils.docLimpo(el.value);
+      const cnpj = Utils.ehCNPJ(val);
       if (!val) {
         isValid = false;
         errorMsg = 'Informe seu CPF para enviar o contrato.';
         marcar(el, true);
-      } else if (val.length <= 11 ? !Utils.isValidCPF(val) : !Utils.isValidCNPJ(val)) {
+      } else if (cnpj ? !Utils.isValidCNPJ(val) : !Utils.isValidCPF(val)) {
         isValid = false;
-        errorMsg = 'O ' + (val.length <= 11 ? 'CPF' : 'CNPJ') + ' informado (' + el.value + ') é inválido. Por favor, corrija.';
+        errorMsg = 'O ' + (cnpj ? 'CNPJ' : 'CPF') + ' informado (' + el.value + ') é inválido. Por favor, corrija.';
         marcar(el, true);
       } else {
         marcar(el, false);

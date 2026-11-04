@@ -15,6 +15,8 @@ COPY public ./public
 # O banco NAO pode viver em /app: todo deploy troca o filesystem da imagem.
 # /data e o ponto de montagem do disco persistente do host.
 ENV DB_FILE=/data/data.db
+# Fotos e videos das vistorias e dos imoveis: mesmo disco, pelo mesmo motivo.
+ENV UPLOADS_DIR=/data/uploads
 ENV PORT=3000
 
 # HTTPS=1 marca o cookie de sessao como Secure. Sem isto o cookie viaja

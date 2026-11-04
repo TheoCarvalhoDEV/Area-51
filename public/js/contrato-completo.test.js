@@ -1,6 +1,6 @@
 // Check do Storage.carregarCompleto: contrato da lista (sem imagens) ganha as
 // imagens do servidor sem perder o que o cache tem de mais novo.
-// Rodar: node public/js/midia.test.js
+// Rodar: node public/js/contrato-completo.test.js
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');

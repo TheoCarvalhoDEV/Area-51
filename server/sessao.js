@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════
 
 const crypto = require('node:crypto');
+const cookie = require('cookie');
 const { db } = require('./db');
 
 const DIAS = 30;
@@ -69,17 +70,12 @@ function fecharSessao(req, res) {
   res.clearCookie(NOME_COOKIE, { path: '/' });
 }
 
+// `cookie.parse` e não split à mão: o `decodeURIComponent` cru lançava com um
+// `%` malformado, e um cookie qualquer derrubava a requisição com 500.
 function lerCookie(req) {
   const bruto = req.headers.cookie;
   if (!bruto) return null;
-  for (const parte of bruto.split(';')) {
-    const i = parte.indexOf('=');
-    if (i < 0) continue;
-    if (parte.slice(0, i).trim() === NOME_COOKIE) {
-      return decodeURIComponent(parte.slice(i + 1).trim());
-    }
-  }
-  return null;
+  return cookie.parse(bruto)[NOME_COOKIE] || null;
 }
 
 // Devolve o usuário da sessão, ou null. Sessão vencida é apagada na leitura —
@@ -123,7 +119,7 @@ function exigirAdmin(req, res, next) {
 }
 
 module.exports = {
-  criarSenha, conferirSenha, hashSenha,
-  abrirSessao, fecharSessao, usuarioDaSessao,
-  exigirLogin, exigirAdmin, NOME_COOKIE
+  criarSenha, conferirSenha,
+  abrirSessao, fecharSessao, usuarioDaSessao, lerCookie,
+  exigirLogin, exigirAdmin
 };

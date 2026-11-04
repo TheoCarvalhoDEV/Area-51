@@ -11,10 +11,32 @@ const crypto = require('node:crypto');
 const { db } = require('../db');
 const {
   criarSenha, conferirSenha, abrirSessao, fecharSessao,
-  usuarioDaSessao, exigirLogin
+  usuarioDaSessao, exigirLogin, lerCookie
 } = require('../sessao');
+const limite = require('../limite');
+const { limitar } = limite;
 
 const router = express.Router();
+
+// Senha guardada com scrypt custa ~70ms para conferir, o que ja e um freio
+// natural — mas freio de CPU nao e limite: com paralelismo, o atacante testa
+// milhares por minuto. Cinco por minuto por IP transforma um dicionario de
+// 10 mil senhas em 33 horas de tentativa contra UMA conta.
+//
+// O teto vale para tentativa CERTA tambem, de proposito: se a senha certa
+// passasse livre, bastaria intercalar um acerto conhecido para zerar o
+// contador e varrer a vontade.
+const limiteLogin = limitar({
+  escopo: 'auth-entrar', max: 5, janelaMs: 60_000,
+  mensagem: 'Muitas tentativas de acesso. Espere um minuto e tente de novo.'
+});
+
+// Cadastro tem teto mais largo e janela mais longa: ninguem abre dez contas por
+// engano, e sem isto uma unica maquina enche a tabela de usuarios.
+const limiteCadastro = limitar({
+  escopo: 'auth-registrar', max: 10, janelaMs: 60 * 60_000,
+  mensagem: 'Muitos cadastros a partir deste endereço. Tente de novo mais tarde.'
+});
 
 // O mesmo mínimo que a tela de cadastro anuncia (auth.js do front).
 const MIN_SENHA = 8;
@@ -32,56 +54,13 @@ function validar(email, senha) {
 
 const publico = (u) => ({ id: u.id, email: u.email, is_admin: !!u.is_admin });
 
-// ── Limite de tentativas de login ───────────────────────────────────────
-//
-// Sem isto o login aceita adivinhação à vontade. Duas contagens, porque os
-// ataques são dois: muitas senhas contra UM e-mail (de vários IPs) e muitos
-// e-mails a partir de UM IP. O teto por IP é mais alto: um escritório inteiro
-// sai pelo mesmo IP, e errar a senha não pode trancar os colegas.
-//
-// A checagem vem ANTES do scrypt: recusar depois de hashear ainda gastaria a
-// CPU que o limite existe para poupar.
-//
-// ponytail: memória do processo — reinício zera a contagem e não vale entre
-// várias instâncias. Basta enquanto o sistema roda num processo só (o SQLite
-// já exige isso); com mais de um, a contagem vai para o banco.
-const JANELA = 15 * 60e3;
-const TETO = { email: 10, ip: 50 };
-const falhas = new Map();   // chave -> { n, ate }
-
-function chavesDe(req, email) {
-  return [['email', 'e:' + email.toLowerCase()], ['ip', 'i:' + req.ip]];
-}
-
-function bloqueado(chaves) {
-  const agora = Date.now();
-  return chaves.some(([tipo, k]) => {
-    const f = falhas.get(k);
-    if (f && f.ate < agora) { falhas.delete(k); return false; }
-    return !!f && f.n >= TETO[tipo];
-  });
-}
-
-function contarFalha(chaves) {
-  const agora = Date.now();
-  // Faxina ocasional: chave de quem nunca voltou não pode ficar para sempre.
-  if (falhas.size > 10000) {
-    for (const [k, f] of falhas) if (f.ate < agora) falhas.delete(k);
-  }
-  for (const [, k] of chaves) {
-    const f = falhas.get(k);
-    if (f && f.ate >= agora) f.n++;
-    else falhas.set(k, { n: 1, ate: agora + JANELA });
-  }
-}
-
 // Salt fixo para o caso de e-mail inexistente: o hash roda mesmo assim, senão
 // a resposta rápida para "não existe" e lenta para "senha errada" entregaria,
 // pelo relógio, quem tem conta — exatamente o que a mensagem igual esconde.
 const SALT_FANTASMA = '0'.repeat(32);
 
 // ── Cadastro ────────────────────────────────────────────────────────────
-router.post('/registrar', async (req, res) => {
+router.post('/registrar', limiteCadastro, async (req, res) => {
   const email = String(req.body.email || '').trim();
   const senha = req.body.senha;
 
@@ -116,13 +95,17 @@ router.post('/registrar', async (req, res) => {
 });
 
 // ── Entrar ──────────────────────────────────────────────────────────────
-router.post('/entrar', async (req, res) => {
+router.post('/entrar', limiteLogin, async (req, res) => {
   const email = String(req.body.email || '').trim();
   const senha = String(req.body.senha || '');
 
-  const chaves = chavesDe(req, email);
-  if (bloqueado(chaves)) {
-    return res.status(429).json({ erro: 'Muitas tentativas. Aguarde 15 minutos e tente de novo.' });
+  // O limite por IP acima protege a PORTA; este protege a CONTA. Mil endereços
+  // fazendo cinco tentativas cada não encostam no teto por IP — e são cinco mil
+  // por minuto contra a mesma senha.
+  if (limite.contaBloqueada(email)) {
+    return res.status(429).json({
+      erro: 'Muitas tentativas nesta conta. Espere uma hora e tente de novo.'
+    });
   }
 
   const u = db.prepare('select * from users where email = ?').get(email);
@@ -133,13 +116,13 @@ router.post('/entrar', async (req, res) => {
   // Mesma resposta para e-mail inexistente e senha errada: distinguir os dois
   // transforma o login num verificador de quem tem conta aqui.
   if (!certa) {
-    contarFalha(chaves);
+    limite.registrarFalhaDeLogin(email);
     return res.status(401).json({ erro: 'Invalid login credentials' });
   }
 
-  // Só a contagem do e-mail zera no acerto. Zerar a do IP deixaria quem tem
-  // uma conta própria "limpar" o IP entrando nela entre rodadas de ataque.
-  falhas.delete(chaves[0][1]);
+  // Acerto zera: sem isto, trancar a conta de alguém de fora seria só queimar
+  // as tentativas no e-mail dela.
+  limite.limparFalhasDeLogin(email);
 
   db.prepare('update users set ultimo_login = ? where id = ?').run(new Date().toISOString(), u.id);
   abrirSessao(res, u.id);
@@ -160,10 +143,17 @@ router.get('/sessao', (req, res) => {
 });
 
 // ── Trocar a senha (logado) ─────────────────────────────────────────────
-router.put('/senha', exigirLogin, async (req, res) => {
+router.put('/senha', exigirLogin, limiteLogin, async (req, res) => {
   const senha = req.body.senha;
   if (!senha || String(senha).length < MIN_SENHA) {
     return res.status(400).json({ erro: `A senha precisa ter ao menos ${MIN_SENHA} caracteres.` });
+  }
+
+  // A senha ATUAL é cobrada, como na exclusão de conta. Sem isto, uma sessão
+  // roubada (ou um XSS) trocaria a senha e trancaria o dono fora da conta.
+  const u = db.prepare('select salt, senha_hash from users where id = ?').get(req.usuario.id);
+  if (!u || !(await conferirSenha(String(req.body.atual || ''), u.salt, u.senha_hash))) {
+    return res.status(401).json({ erro: 'Senha atual incorreta. Nada foi alterado.' });
   }
 
   const { salt, senha_hash } = await criarSenha(String(senha));
@@ -173,10 +163,8 @@ router.put('/senha', exigirLogin, async (req, res) => {
   // Trocar a senha derruba as OUTRAS sessões. Quem troca a senha em geral
   // desconfia de que alguém entrou; deixar as sessões antigas vivas anularia
   // o motivo da troca. A sessão atual sobrevive para não deslogar quem pediu.
-  const atual = req.headers.cookie || '';
-  const token = (atual.match(/(?:^|;\s*)sessao=([^;]+)/) || [])[1];
   db.prepare('delete from sessions where user_id = ? and token != ?')
-    .run(req.usuario.id, token ? decodeURIComponent(token) : '');
+    .run(req.usuario.id, lerCookie(req) || '');
 
   res.json({ ok: true });
 });
@@ -184,7 +172,7 @@ router.put('/senha', exigirLogin, async (req, res) => {
 // ── Excluir a própria conta ─────────────────────────────────────────────
 // Substitui a RPC delete_own_account. A senha é cobrada de novo aqui, e não só
 // na tela: é a última confirmação antes de um apagamento em cascata.
-router.delete('/conta', exigirLogin, async (req, res) => {
+router.delete('/conta', exigirLogin, limiteLogin, async (req, res) => {
   const senha = String(req.body.senha || '');
   const u = db.prepare('select * from users where id = ?').get(req.usuario.id);
 

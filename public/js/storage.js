@@ -12,6 +12,9 @@ const Storage = {
   clientsCache: [],
   financialRecordsCache: [],
   inspectionsCache: [],
+  // Fotos de TODOS os imóveis da conta, numa lista só. A tela desenha N cartões
+  // de uma vez; uma busca por imóvel seria N requisições para montar uma lista.
+  propertyMediaCache: [],
   profileCache: {},
 
   // Troca/saída de conta: descarta TODOS os caches do usuário anterior.
@@ -23,6 +26,7 @@ const Storage = {
     this.clientsCache = [];
     this.financialRecordsCache = [];
     this.inspectionsCache = [];
+    this.propertyMediaCache = [];
     this.profileCache = {};
   },
 
@@ -40,6 +44,26 @@ const Storage = {
         Utils.toast(msgErro + ' ' + detalhe, 'error');
       }
     });
+  },
+
+  // Imóveis, clientes, financeiro e vistorias gravam igual: mescla no cache,
+  // escreve no servidor sem esperar. Um lugar só para os quatro — eram quatro
+  // cópias da mesma função, e a cópia que alguém corrigisse divergiria.
+  _salvar(cache, recurso, dado, msgErro) {
+    const id = dado.id || Utils.generateId();
+    const lista = this[cache];
+    const idx = lista.findIndex(x => x.id === id);
+    const item = { ...(idx >= 0 ? lista[idx] : {}), ...dado, id,
+      user_id: App.user ? App.user.id : null, updated_at: new Date().toISOString() };
+    if (idx >= 0) lista[idx] = item;
+    else lista.push(item);
+    if (App.user) this._cloudWrite(Api.save(recurso, item), msgErro);
+    return item;
+  },
+
+  _excluir(cache, recurso, id, msgErro) {
+    this[cache] = this[cache].filter(x => x.id !== id);
+    if (App.user) this._cloudWrite(Api.remove(recurso, id), msgErro);
   },
 
   // ── Carga inicial (roda a cada login) ──
@@ -67,17 +91,19 @@ const Storage = {
         updatedAt: item.updated_at
       }));
 
-      const [props, clients, fin, insp] = await Promise.all([
+      const [props, clients, fin, insp, fotos] = await Promise.all([
         Api.list('properties'),
         Api.list('clients'),
         Api.list('financial_records'),
-        Api.list('inspections')
+        Api.list('inspections'),
+        Api.listarMidiasImovel()
       ]);
 
       this.propertiesCache = props || [];
       this.clientsCache = clients || [];
       this.financialRecordsCache = fin || [];
       this.inspectionsCache = insp || [];
+      this.propertyMediaCache = fotos || [];
 
       this.profileCache = (await Api.lerPerfil()) || {};
     } catch (e) {
@@ -208,16 +234,6 @@ const Storage = {
     }
   },
 
-  getStats() {
-    const contracts = this.getAll();
-    const now = new Date();
-    const thisMonth = contracts.filter(c => {
-      const d = new Date(c.createdAt);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-    return { total: contracts.length, thisMonth: thisMonth.length };
-  },
-
   // ── Perfil do locador ──
   getAdminProfile() {
     return this.profileCache;
@@ -248,52 +264,18 @@ const Storage = {
     return this.getAll().filter(c => c.fields && c.fields.property_id === propId);
   },
 
-  saveProperty(prop) {
-    const id = prop.id || Utils.generateId();
-    const idx = this.propertiesCache.findIndex(p => p.id === id);
-    const existing = idx >= 0 ? this.propertiesCache[idx] : {};
-    const item = { ...existing, ...prop, id, user_id: App.user ? App.user.id : null, updated_at: new Date().toISOString() };
-    if (idx >= 0) this.propertiesCache[idx] = item;
-    else this.propertiesCache.push(item);
+  saveProperty(prop) { return this._salvar('propertiesCache', 'properties', prop, 'O imóvel NÃO foi salvo na nuvem:'); },
 
-    if (App.user) {
-      this._cloudWrite(Api.save('properties', item), 'O imóvel NÃO foi salvo na nuvem:');
-    }
-    return item;
-  },
-
-  deleteProperty(id) {
-    this.propertiesCache = this.propertiesCache.filter(p => p.id !== id);
-    if (App.user) {
-      this._cloudWrite(Api.remove('properties', id), 'O imóvel NÃO foi excluído da nuvem:');
-    }
-  },
+  deleteProperty(id) { this._excluir('propertiesCache', 'properties', id, 'O imóvel NÃO foi excluído da nuvem:'); },
 
   // ── Clientes ──
   getClients() {
     return this.clientsCache || [];
   },
 
-  saveClient(client) {
-    const id = client.id || Utils.generateId();
-    const idx = this.clientsCache.findIndex(c => c.id === id);
-    const existing = idx >= 0 ? this.clientsCache[idx] : {};
-    const item = { ...existing, ...client, id, user_id: App.user ? App.user.id : null, updated_at: new Date().toISOString() };
-    if (idx >= 0) this.clientsCache[idx] = item;
-    else this.clientsCache.push(item);
+  saveClient(client) { return this._salvar('clientsCache', 'clients', client, 'O cliente NÃO foi salvo na nuvem:'); },
 
-    if (App.user) {
-      this._cloudWrite(Api.save('clients', item), 'O cliente NÃO foi salvo na nuvem:');
-    }
-    return item;
-  },
-
-  deleteClient(id) {
-    this.clientsCache = this.clientsCache.filter(c => c.id !== id);
-    if (App.user) {
-      this._cloudWrite(Api.remove('clients', id), 'O cliente NÃO foi excluído da nuvem:');
-    }
-  },
+  deleteClient(id) { this._excluir('clientsCache', 'clients', id, 'O cliente NÃO foi excluído da nuvem:'); },
 
   // ── Inquilino do contrato vira cadastro na aba Clientes ──
   // Chamado a cada save de contrato (create/update), então é IDEMPOTENTE:
@@ -304,15 +286,17 @@ const Storage = {
   syncClientFromContract(fields) {
     fields = fields || {};
     const nome = (fields.nome_locatario || '').trim();
-    const doc = (fields.doc_locatario || '').replace(/\D/g, '');
+    // docLimpo e não \D: o CNPJ alfanumérico tem letras, e sem elas dois
+    // CNPJs diferentes virariam o mesmo cliente.
+    const doc = Utils.docLimpo(fields.doc_locatario);
     if (!nome || !doc) return null;
 
-    const jaExiste = this.getClients().some(c => (c.document || '').replace(/\D/g, '') === doc);
+    const jaExiste = this.getClients().some(c => Utils.docLimpo(c.document) === doc);
     if (jaExiste) return null;
 
     const cliente = this.saveClient({
       client_type: 'Inquilino',
-      person_type: doc.length > 11 ? 'PJ' : 'PF',
+      person_type: Utils.ehCNPJ(doc) ? 'PJ' : 'PF',
       name: nome,
       document: fields.doc_locatario || '',
       rg: fields.rg_locatario || '',
@@ -330,26 +314,9 @@ const Storage = {
     return (this.financialRecordsCache || []).slice().sort((a, b) => new Date(b.due_date || 0) - new Date(a.due_date || 0));
   },
 
-  saveFinancialRecord(rec) {
-    const id = rec.id || Utils.generateId();
-    const idx = this.financialRecordsCache.findIndex(r => r.id === id);
-    const existing = idx >= 0 ? this.financialRecordsCache[idx] : {};
-    const item = { ...existing, ...rec, id, user_id: App.user ? App.user.id : null, updated_at: new Date().toISOString() };
-    if (idx >= 0) this.financialRecordsCache[idx] = item;
-    else this.financialRecordsCache.push(item);
+  saveFinancialRecord(rec) { return this._salvar('financialRecordsCache', 'financial_records', rec, 'O lançamento NÃO foi salvo na nuvem:'); },
 
-    if (App.user) {
-      this._cloudWrite(Api.save('financial_records', item), 'O lançamento NÃO foi salvo na nuvem:');
-    }
-    return item;
-  },
-
-  deleteFinancialRecord(id) {
-    this.financialRecordsCache = this.financialRecordsCache.filter(r => r.id !== id);
-    if (App.user) {
-      this._cloudWrite(Api.remove('financial_records', id), 'O lançamento NÃO foi excluído da nuvem:');
-    }
-  },
+  deleteFinancialRecord(id) { this._excluir('financialRecordsCache', 'financial_records', id, 'O lançamento NÃO foi excluído da nuvem:'); },
 
   // ── Vistorias ─────────────────────────────────────────────────────────
   getInspections() {
@@ -365,26 +332,9 @@ const Storage = {
     return (this.inspectionsCache || []).filter(v => v.property_id === propId);
   },
 
-  saveInspection(v) {
-    const id = v.id || Utils.generateId();
-    const idx = this.inspectionsCache.findIndex(x => x.id === id);
-    const existing = idx >= 0 ? this.inspectionsCache[idx] : {};
-    const item = { ...existing, ...v, id, user_id: App.user ? App.user.id : null, updated_at: new Date().toISOString() };
-    if (idx >= 0) this.inspectionsCache[idx] = item;
-    else this.inspectionsCache.push(item);
+  saveInspection(v) { return this._salvar('inspectionsCache', 'inspections', v, 'A vistoria NÃO foi salva na nuvem:'); },
 
-    if (App.user) {
-      this._cloudWrite(Api.save('inspections', item), 'A vistoria NÃO foi salva na nuvem:');
-    }
-    return item;
-  },
-
-  deleteInspection(id) {
-    this.inspectionsCache = this.inspectionsCache.filter(v => v.id !== id);
-    if (App.user) {
-      this._cloudWrite(Api.remove('inspections', id), 'A vistoria NÃO foi excluída da nuvem:');
-    }
-  },
+  deleteInspection(id) { this._excluir('inspectionsCache', 'inspections', id, 'A vistoria NÃO foi excluída da nuvem:'); },
 
   // Gerar cobranças do mês corrente para todos os contratos ativos.
   // "Ativo" é a MESMA regra dos badges (Utils.getContractStatus, por datas) —

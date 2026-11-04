@@ -69,8 +69,8 @@ O link do inquilino carrega um **payload cifrado em AES-GCM** no próprio navega
 
 HTML, CSS e JavaScript puros — **sem framework e sem build step**.
 
-- Front: scripts globais com `<script defer>` em ordem fixa, cache-busting manual por querystring — **nenhuma dependência de runtime**
-- Backend próprio em `server/`: **Node + Express + `node:sqlite`** — uma dependência, banco num arquivo (`data.db`), sem serviço externo
+- Front: scripts globais com `<script defer>` em ordem fixa, cache-busting manual por querystring. Bibliotecas (CPF/CNPJ e extenso, pad de assinatura, CSV) pré-empacotadas em `public/vendor/libs.js` — regerar com `npm run vendor`
+- Backend próprio em `server/`: **Node + Express + `node:sqlite`** — banco num arquivo (`data.db`), sem serviço externo. Dependências e o porquê de cada uma: `docs/ARQUITETURA.md` R1
 - Senha (`scrypt`), sessão e hash vêm do `node:crypto`; não há biblioteca de autenticação
 - Criptografia: WebCrypto (`crypto.subtle`) nativo do navegador
 - CSP em `<meta>` no `public/app.html` + cabeçalhos de segurança enviados por `server/index.js`
@@ -102,7 +102,7 @@ Não há instalação nem build. Mas **não abra por `file://`** — a CSP e o `
 **Requer Node 24** (ou 22.5+): o backend usa `node:sqlite`, que não existe antes disso.
 
 ```bash
-npm install     # uma dependência: express
+npm install
 npm start       # http://localhost:3000
 ```
 
@@ -110,9 +110,32 @@ Depois acesse `http://localhost:3000/` (landing) ou `http://localhost:3000/app.h
 
 O banco (`data.db`) é criado no primeiro boot e as migrations pendentes rodam sozinhas a cada boot — não há passo de provisionamento. **A primeira conta cadastrada vira administradora**; as seguintes, não.
 
-**Backup:** automático, em `backups/` ao lado do banco — um por dia (guarda 7) e um antes de cada migration. **Restaurar:** pare o servidor, copie o backup escolhido por cima do `data.db`, apague `data.db-wal` e `data.db-shm`, suba de novo.
+### Variáveis de ambiente
 
-**Deploy:** Render, pelo `render.yaml` (New → Blueprint). Exige plano com disco persistente; banco e backups ficam em `/data`. O backup local não sobrevive à perda do disco — ver `docs/ARQUITETURA.md` §8.
+Nenhuma é obrigatória — o sistema sobe sem definir nenhuma, e é assim que se
+roda local. Elas existem para o dia em que houver um servidor de verdade.
+
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `PORT` | `3000` | Porta do servidor. |
+| `DB_FILE` | `./data.db` | Caminho do banco. Os testes apontam para um arquivo descartável. |
+| `UPLOADS_DIR` | `./uploads` | Pasta das fotos e vídeos (vistorias e imóveis). |
+| `BACKUP_DIR` | `backups/` ao lado do banco | Onde ficam os backups automáticos. |
+| `HTTPS` | *(vazio)* | Qualquer valor liga a flag `Secure` no cookie de sessão. **Ligue assim que houver HTTPS**: sem ela, o cookie trafega em claro. |
+| `TRUST_PROXY` | `false` | Defina **se e somente se** houver proxy reverso na frente (`1`, `loopback`, ou o IP dele). **Ligada sem proxy**, qualquer um forja o IP do aceite mandando `X-Forwarded-For`. **Desligada com proxy**, o IP de todos vira o do proxy: o limite por IP passa a valer para o site inteiro e o certificado registra o IP errado. O servidor avisa no console quando detecta o segundo caso. |
+
+### Backup
+
+Automático, em `backups/` ao lado do banco, e cobre **as duas coisas** — `data.db` guarda os registros, `uploads/` guarda as fotos e vídeos; um sem o outro restaura linhas apontando para arquivo que não existe:
+
+- **Banco:** um por dia (guarda 7) e um antes de cada migration.
+- **Fotos e vídeos:** espelho incremental em `backups/uploads/`. O que é apagado do app fica 7 dias em `backups/uploads/removidos/` antes de sumir.
+
+**Restaurar:** pare o servidor; copie o backup escolhido por cima do `data.db` e apague `data.db-wal` e `data.db-shm`; copie de volta para `uploads/` o que faltar (de `backups/uploads/` e, se preciso, de `removidos/`); suba de novo.
+
+### Hospedagem
+
+**Ainda não decidida** — hoje o sistema roda local. `Dockerfile` e `render.yaml` estão no repositório como ponto de partida (container + disco persistente em `/data`), não como decisão. Seja qual for o host, ele precisa de disco persistente para o `data.db` e para `uploads/`, e o backup local não sobrevive à perda desse disco.
 
 Testes — não exigem instalação, é Node puro:
 

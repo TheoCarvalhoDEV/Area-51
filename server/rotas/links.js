@@ -15,8 +15,31 @@ const express = require('express');
 const crypto = require('node:crypto');
 const { db } = require('../db');
 const { exigirLogin } = require('../sessao');
+const { limitar } = require('../limite');
 
 const router = express.Router();
+
+// Estas rotas sao publicas, e o id e a unica coisa que separa um estranho do
+// payload cifrado de um contrato. UUID v4 nao se adivinha por forca bruta, mas
+// varredura nao precisa acertar de primeira: precisa ter quantas tentativas
+// quiser. E isto que tira essa condicao.
+//
+// O escopo e FIXO ('links-leitura'), nunca a URL: com o id na chave, cada UUID
+// tentado teria orcamento proprio e a varredura passaria inteira sem tocar no
+// teto — o limite existiria no papel e em lugar nenhum.
+//
+// 30/min cabe folgado no uso real (abrir o link faz duas requisicoes: payload e
+// evidencia) e reduz uma varredura a nada.
+const limiteLeitura = limitar({
+  escopo: 'links-leitura', max: 30, janelaMs: 60_000,
+  mensagem: 'Muitas consultas deste endereço. Espere um minuto e tente de novo.'
+});
+
+// A escrita ja exige a prova da chave (SHA-256), mas prova tambem se chuta.
+const limiteEscrita = limitar({
+  escopo: 'links-escrita', max: 20, janelaMs: 60_000,
+  mensagem: 'Muitos envios deste endereço. Espere um minuto e tente de novo.'
+});
 
 const TETO_PAYLOAD = 524288;        // 512 KB
 const LIMITE_DIARIO = 100;          // links por usuário por dia
@@ -33,11 +56,13 @@ function expurgar() {
   db.prepare('delete from tenant_links where expires_at < ?').run(agora());
 }
 
-// `req.ip`, não o X-Forwarded-For lido à mão: o primeiro item daquele
-// cabeçalho é escrito pelo cliente, e o inquilino forjaria o IP da própria
-// evidência. Quais saltos são confiáveis é decidido UMA vez, no `trust proxy`
-// de server/index.js.
-const ipDe = (req) => req.ip || '';
+// `req.ip` ja resolve XFF conforme o `trust proxy` de index.js — com ele
+// desligado (o padrao), cabecalho forjado pelo signatario nao entra.
+// O ::ffff: e o mapeamento IPv4-em-IPv6 do Node: some aqui, na gravacao, para
+// nao virar ruido numa folha que alguem vai ler em juizo.
+function ipDe(req) {
+  return String(req.ip || req.socket.remoteAddress || '').replace(/^::ffff:/i, '');
+}
 
 // ── Criar (locador, exige sessão) ───────────────────────────────────────
 router.post('/', exigirLogin, (req, res) => {
@@ -68,6 +93,16 @@ router.post('/', exigirLogin, (req, res) => {
   // Guarda SHA-256 DA PROVA, não a prova. O cliente já manda SHA-256(chave);
   // aqui hasheia de novo. Assim quem lê o banco não consegue escrever no link:
   // teria a prova guardada, mas não a prova que o servidor cobra.
+  // Id repetido nao pode virar 500. Acontece de verdade numa retentativa depois
+  // de conexao instavel — o cliente manda o mesmo id de novo e precisa de uma
+  // resposta que signifique alguma coisa. E, na outra ponta, um id conhecido de
+  // OUTRA conta tem que ser recusado sem sobrescrever nada: 409 para os dois,
+  // sem dizer de quem e o link.
+  const jaExiste = db.prepare('select 1 from tenant_links where id = ?').get(id);
+  if (jaExiste) {
+    return res.status(409).json({ erro: 'Este id de link já está em uso. Gere outro.' });
+  }
+
   db.prepare(`
     insert into tenant_links
       (id, encrypted_payload, key_proof, created_by, created_at, expires_at)
@@ -83,7 +118,7 @@ router.post('/', exigirLogin, (req, res) => {
 });
 
 // ── Ler (público) ───────────────────────────────────────────────────────
-router.get('/:id', (req, res) => {
+router.get('/:id', limiteLeitura, (req, res) => {
   expurgar();
   const linha = db
     .prepare('select encrypted_payload from tenant_links where id = ?')
@@ -98,7 +133,7 @@ router.get('/:id', (req, res) => {
 // ── Evidência do aceite (público) ───────────────────────────────────────
 // Rota separada de propósito: é a única parte da trilha que quem assina não
 // redige, e mantê-la fora do payload cifrado é o que a torna evidência.
-router.get('/:id/evidencia', (req, res) => {
+router.get('/:id/evidencia', limiteLeitura, (req, res) => {
   const linha = db
     .prepare('select finalized_at, finalized_ip from tenant_links where id = ?')
     .get(req.params.id);
@@ -110,7 +145,7 @@ router.get('/:id/evidencia', (req, res) => {
 });
 
 // ── Gravar (público — é o inquilino que escreve) ────────────────────────
-router.put('/:id', (req, res) => {
+router.put('/:id', limiteEscrita, (req, res) => {
   const { payload, key_proof, finalize } = req.body || {};
 
   if (typeof payload !== 'string' || !payload) {
