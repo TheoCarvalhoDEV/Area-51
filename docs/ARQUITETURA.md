@@ -43,7 +43,7 @@ A stack do front continua sendo a do Caminho A. O que mudou foi o backend.
 
 **O que a decisão custou, registrado:** a redefinição de senha por e-mail deixou de existir — quem enviava o e-mail era a Supabase, e não há serviço de envio. A tela saiu em vez de ficar como botão que não chega a lugar nenhum.
 
-**Consequência de deploy:** a Vercel serve estático e funções sem estado; um processo com banco em arquivo não roda lá. O `vercel.json` saiu do repositório. **Deploy:** Render com disco persistente (`Dockerfile` + `render.yaml`, commit `c705b9f`); o banco e os backups vivem em `/data`. Ver seção 8.
+**Consequência de deploy:** a Vercel serve estático e funções sem estado; um processo com banco em arquivo não roda lá. O `vercel.json` saiu do repositório. **Hospedagem: não decidida** (2026-11-04) — o sistema roda local. `Dockerfile` + `render.yaml` ficam como ponto de partida. A volta à Supabase avaliada em 28/08 foi cancelada.
 
 **Critérios para reavaliar (sair de SQLite para Postgres):** mais de um processo servindo a mesma base, ou necessidade de acesso concorrente de escrita a partir de máquinas diferentes.
 
@@ -64,16 +64,17 @@ Aplicação web de **geração e gestão de contratos de locação**: o locador 
 │  /api/:recurso  contracts · properties · clients ·                │
 │                 financial_records · inspections                   │
 │  /api/links     link do inquilino (PÚBLICO — ele não tem conta)   │
+│  /api/midias    foto/vídeo da vistoria · foto do imóvel           │
 │  /api/admin     supervisão de contas (somente leitura)            │
 └───────────────────────────────┬───────────────────────────────────┘
                                 │ node:sqlite
 ┌───────────────────────────────▼───────────────────────────────────┐
-│  data.db — 9 tabelas. Escopo por usuário é do SERVIDOR, não do    │
-│  banco: não há RLS. Ver §7.                                       │
+│  data.db — 11 tabelas + uploads/ (os bytes das mídias em disco).  │
+│  Escopo por usuário é do SERVIDOR, não do banco: sem RLS. Ver §7. │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-**Stack:** HTML, CSS e JavaScript puros no front — sem framework, sem build, **sem nenhuma dependência de runtime**. Backend em Node com **uma** dependência (Express); banco pelo `node:sqlite` da própria stdlib; senha e sessão pelo `node:crypto`. Criptografia do link com WebCrypto nativo no navegador.
+**Stack:** HTML, CSS e JavaScript puros no front — sem framework e sem build de app. As bibliotecas do front vêm pré-empacotadas num arquivo versionado, `public/vendor/libs.js` (global `Libs`, regerado por `npm run vendor`). Backend em Node + Express, com as dependências justificadas em R1; banco pelo `node:sqlite` da própria stdlib; senha e sessão pelo `node:crypto`. Criptografia do link com WebCrypto nativo no navegador.
 
 ## 2. Páginas
 
@@ -82,7 +83,7 @@ Todas em `public/`, servidas por `express.static`.
 | Página | Papel | Observações |
 |---|---|---|
 | `index.html` | Landing (marketing) | CSS próprio (`landing.css`), um script inline, nenhum JS da aplicação. Sempre escura. |
-| `app.html` | A aplicação (SPA por hash) | Shell fixo + `<main id="main-content">` vazio; todo conteúdo é injetado por JS. CSP em `<meta>`. Assets com `?v=2.0.3`. Barra lateral escura no desktop (`.app-sidebar`) mais `.content-bar` com a busca; no celular, `.mobile-header` + `.bottom-nav`. |
+| `app.html` | A aplicação (SPA por hash) | Shell fixo + `<main id="main-content">` vazio; todo conteúdo é injetado por JS. CSP em `<meta>`. Assets com `?v=2.4.0`. Barra lateral escura no desktop (`.app-sidebar`) mais `.content-bar` com a busca; no celular, `.mobile-header` + `.bottom-nav`. |
 | `termos.html` | Termos de uso + privacidade | Autônoma: estilo inline próprio, zero scripts, `noindex`. Minuta com campos `[PREENCHER]`. |
 
 O arquivo `redesign-organic.dc.html` (export de canvas que virou o shell em 24/08) foi renomeado para `app.html` em 26/08, junto com a saída da Supabase. Não havia mais link em circulação a preservar, e o nome era resíduo de maquete.
@@ -135,7 +136,7 @@ Parâmetro ausente ou inválido redireciona (editor) ou mostra erro (inquilino);
 
 ## 6. Modelo de dados
 
-`data.db` (SQLite), schema criado no boot. Nove tabelas.
+`data.db` (SQLite), schema criado no boot. Onze tabelas.
 
 | Tabela | Natureza | Chave |
 |---|---|---|
@@ -145,6 +146,10 @@ Parâmetro ausente ou inválido redireciona (editor) ou mostra erro (inquilino);
 | `profiles` | O perfil inteiro como blob | `id` = `users.id` |
 | `tenant_links` | `encrypted_payload` (AES-GCM, ≤ 512 KB), `key_proof`, `finalized`, `finalized_at`/`finalized_ip`, `expires_at` (30 dias) | `id text` (uuid do CSPRNG do cliente) |
 | `properties`, `clients`, `financial_records`, `inspections` | ERP com **colunas tipadas** | `id text` gerado no cliente |
+| `midias` | Foto/vídeo por ambiente da vistoria. Cascata com `inspections` | `id text` (uuid do servidor) |
+| `midias_imovel` | Foto do imóvel, com `capa`. Cascata com `properties` | `id text` (uuid do servidor) |
+
+**Por que duas tabelas de mídia, e não uma.** Os ciclos de vida são outros: a foto da vistoria morre com a vistoria, a do imóvel vive enquanto o imóvel existir — duas cascatas diferentes. Unificar exigiria `inspection_id` anulável, e afrouxar NOT NULL no SQLite significa reconstruir a tabela num banco que já tem contrato assinado dentro. As duas **dividem a pasta `uploads/`**, e é daí que vem a regra que a varredura de órfão em `rotas/midias.js` consulta as DUAS: arquivo de tabela que ela não enxerga é apagado como órfão.
 
 **JSON vs coluna.** `contracts.fields`, `profiles.profile_data` e `inspections.rooms` são conteúdo de formulário, variam por contrato/imóvel e nada neles é consultado por SQL — é o caso em que R4.5 permite JSON. No SQLite eles são `text`.
 
@@ -191,10 +196,10 @@ Os seis `supabase_*.sql` da raiz e a pasta `supabase/` inteira foram **apagados*
 
 ## 10. Testes
 
-**57 testes**, todos por `npm test`, sem framework e sem dependência de teste. CI no GitHub Actions a cada push e PR.
+**83 casos de backend + 16 arquivos de teste do front**, todos por `npm test`, sem framework e sem dependência de teste. CI no GitHub Actions a cada push e PR.
 
-- **Backend — 46 casos** (`server/servidor.test.js`, `node:test`): sobem o app num banco descartável e falam com ele por HTTP. Cobrem o escopo por usuário nas 5 tabelas e no perfil (o que substitui a RLS), senha e sessão, o ciclo do link do inquilino (prova de chave, finalizar só de ida, expiração, teto de 512 KB, IP da evidência não forjável), o limite de tentativas de login, o hash de senha fora do event loop, as migrations (ordem, rollback da que falha, recusa de banco mais novo) e o backup diário, as imagens fora da listagem (sem perda ao regravar), a forma da resposta (`fields` como objeto) e as regras de admin.
-- **Front — 11 arquivos standalone**: leem o fonte e avaliam com `new Function`. Cobrem funções puras (prazo, datas, dinheiro, status), a superfície de segurança (anti-XSS nas duas camadas, `isAdmin`), `clearAll`, a cobrança mensal, o filtro da busca, o formato de dinheiro, a integridade dos tokens de tema e o `carregarCompleto` (cache vence o servidor).
+- **Backend — 83 casos** (`server/servidor.test.js`, `node:test`): sobem o app num banco descartável e falam com ele por HTTP. Cobrem o escopo por usuário nas 5 tabelas e no perfil (o que substitui a RLS), senha e sessão, o ciclo do link do inquilino (prova de chave, finalizar só de ida, expiração, teto de 512 KB, IP da evidência não forjável), o limite de tentativas de login, o hash de senha fora do event loop, as migrations (ordem, rollback da que falha, recusa de banco mais novo) e o backup diário, as imagens fora da listagem (sem perda ao regravar), as mídias de vistoria e imóvel (upload, tetos, varredura de órfão) e o espelho de uploads no backup, a forma da resposta (`fields` como objeto) e as regras de admin.
+- **Front — 16 arquivos standalone**: leem o fonte e avaliam com `new Function`. Cobrem funções puras (prazo, datas, dinheiro, status), a superfície de segurança (anti-XSS nas duas camadas, `isAdmin`), `clearAll`, a cobrança mensal, o filtro da busca, o formato de dinheiro, a integridade dos tokens de tema e o `carregarCompleto` (cache vence o servidor).
 
 **Zero cobertura automatizada nos 3 maiores arquivos do front** (editor, tenant, auth — ~1.900 linhas). Eles são verificados por auditoria de runtime, não por teste: em 26/08 as 10 rotas foram renderizadas e **37 handlers inline disparados um a um, sem falha e sem erro de console**, e o fluxo do inquilino foi percorrido ponta a ponta num navegador de verdade.
 
@@ -210,6 +215,20 @@ Vanilla JS sem build continua sendo a arquitetura do front (seção 0). O backen
 
 Em particular: senha (`scrypt`), banco (`node:sqlite`), sessão (`randomBytes`), hash (`createHash`) e servidor HTTP já vêm da stdlib. Trocar qualquer um por biblioteca exige registrar o porquê.
 
+**Dependências admitidas (2026-11-04)** — em todas, o código feito à mão tinha um defeito real que a biblioteca resolve:
+
+| Onde | Biblioteca | Substituiu | Por quê |
+|---|---|---|---|
+| server | `helmet` | 3 `setHeader` à mão | CSP por cabeçalho (o único jeito de `frame-ancestors` valer), HSTS, COOP/CORP. `useDefaults: false`: a CSP é a mesma do `<meta>`. |
+| server | `cookie` | parse de cookie em `sessao.js` e regex em `auth.js` | `decodeURIComponent` cru lançava com `%` malformado: qualquer cookie derrubava a requisição com 500. |
+| server | `ipaddr.js` | `normalizarIp` à mão | Já vinha com o Express (`proxy-addr`); agora declarado. Parse de IPv6/IPv4-mapeado sem expansão manual de `::`. |
+| server | `file-type` | confiar no `Content-Type` do upload | O formato é conferido pelos bytes; grava-se o mime detectado, não o declarado. |
+| front | `@brazilian-utils/brazilian-utils` | CPF/CNPJ e valor por extenso à mão | **CNPJ alfanumérico** (emitido desde jul/2026) era recusado; o extenso dizia "mil e um real". |
+| front | `signature_pad` | pad de assinatura à mão | Traço borrado em tela de alta densidade, redimensionar apagava a assinatura, sem pointer events. |
+| front | `papaparse` | montagem do CSV à mão | `escapeFormulae`: nome do inquilino como `=HYPERLINK(...)` virava fórmula no Excel do locador. |
+
+As do front são `devDependencies`: entram só no `public/vendor/libs.js` (≈38 KB, esbuild com tree-shaking — o UMD do brazilian-utils sozinho tem 1,4 MB). A imagem de produção (`npm ci --omit=dev`) não as instala.
+
 ## R2 — Camadas e dependências permitidas
 
 ```
@@ -218,7 +237,11 @@ Shell (App) ──► Views ──► UI compartilhada (toast, modal, tema, cert
                   ├─────► Núcleo puro (máscaras, CPF/CNPJ, datas, dinheiro,
                   │        prazo, status, modelos) — sem DOM, sem rede
                   │
-                  └─────► Dados (Storage, CloudDB) ──► Api ──► /api ──► server/
+                  └─────► Dados (Storage, CloudDB, Midias) ──► Api ──► /api ──► server/
+
+server/  index.js ──► sessao.js (quem é) ──► limite.js (quantas vezes)
+                 └──► rotas/{auth, perfil, links, midias, admin, recursos} ──► db.js
+                                                                       └──► uploads/
 ```
 
 Setas só nessa direção. Em particular:
@@ -230,6 +253,9 @@ Setas só nessa direção. Em particular:
 5. **View só mexe no próprio DOM**, dentro de `#main-content`, no ciclo de render dela.
 6. **Regra de negócio não mora em view nem em `Storage`.** Cálculo (status, cobrança, reajuste, parse de dinheiro) mora no núcleo puro e é testável com `node`.
 7. **No backend, rota não fala com o banco por conta própria.** Nome de tabela vem do mapa `RECURSOS` em `db.js` e de lugar nenhum mais.
+8. **Recurso cujo dado o cliente não pode escolher fica FORA do `RECURSOS`.** `profiles` (a chave primária é o usuário) e `midias`/`midias_imovel` (a coluna `arquivo` é o nome de um arquivo real no disco) têm rotas próprias. O CRUD genérico grava o que o corpo mandar nas colunas declaradas — cliente que escolhe nome de arquivo lê o arquivo de qualquer um.
+9. **Proteção de porta é middleware, não `if` em handler.** `sessao.js` (quem é), `limite.js` (quantas vezes) — montados na definição da rota, onde se lê de uma vez quem passa. Regra repetida em cada handler é a que alguém esquece de repetir, e a esquecida é a que vaza.
+10. **Arquivo servido ao usuário passa por rota autenticada, nunca por pasta estática.** `uploads/` não é servido pelo `express.static`: quem tem o nome do arquivo não pode ter a foto.
 
 ## R3 — Estado
 
@@ -267,7 +293,7 @@ O servidor é a fonte da verdade; o cache é derivado e descartável. Três obri
 
 ## R7 — Versionamento de assets e release
 
-1. **Um track de versão por página**: `app.html` (`?v=X.Y.Z`, hoje `2.0.3`) e `index.html`. **Toda mudança de CSS/JS bumpa o track inteiro da página afetada** (buscar e substituir).
+1. **Um track de versão por página**: `app.html` (`?v=X.Y.Z`, hoje `2.4.0`) e `index.html`. **Toda mudança de CSS/JS bumpa o track inteiro da página afetada** (buscar e substituir).
 2. O número da versão entra no CHANGELOG do dia — é o elo entre versão em produção e commit.
 3. Correção estrutural planejada (P2 #18): `Cache-Control` de revalidação nos cabeçalhos que `server/index.js` envia, eliminando o `?v=` manual sem criar build step. Ficou mais barata do que era: agora os cabeçalhos são nossos, não de configuração de CDN que não se pode observar.
 
@@ -317,9 +343,10 @@ Backlog priorizado. Cada item aponta a regra que viola. Pagar de cima para baixo
 - **Assinatura**: o produto entrega assinatura eletrônica **simples** (manuscrita + aceite + trilha de IP/GPS/hash/selfie), válida entre as partes que a aceitam (MP 2.200-2, art. 10 §2), mas **não qualificada (ICP-Brasil)**. Decisão: fica assim, ou entra integração com provedor (ZapSign, Clicksign, D4Sign)? Construir ICP-Brasil internamente não é o caminho.
 - **Landing**: "Planos" é uma âncora para um CTA sem nenhum plano, e "grátis" hoje é verdade (não há cobrança). Não é falso, é vago — alinhar quando houver decisão de monetização.
 - **Admin não enxerga o ERP** — **resolvido como intencional em 26/08**: não existe rota de admin para imóvel, cliente, financeiro ou vistoria, e a ausência virou teste. Supervisão de contas não é acesso ao negócio alheio.
+- **Cota de disco por conta** (aberta desde 27/08, com a mídia das vistorias): com 8 fotos e 2 vídeos por ambiente, uma vistoria de 5 ambientes chega a ~250 MB. Não há cota, nem por conta nem no total. Rodando local e com um dono só, é aceitável; num deploy multiusuário, deixa de ser — e o backup passou a ser duas coisas (`data.db` + `uploads/`), o que também vale registrar em qualquer rotina de cópia.
 - **`cloud_key` em claro no banco**: o admin não a lê (garantido por teste), mas continua legível por quem tenha o arquivo `data.db`. Cifrar em repouso exige uma chave fora do banco — projeto próprio. **Ficou mais urgente depois de 26/08:** antes era uma linha num Postgres gerenciado; agora é um arquivo na máquina que roda o servidor.
 - **Redefinição de senha por e-mail** (aberta desde 26/08): saiu junto com a Supabase, que era quem enviava o e-mail. Decisão pendente: entra serviço de envio (Resend/SendGrid/SMTP) ou fica com redefinição pelo admin?
-- **Deploy** — resolvido: Render com disco persistente. **Aberto:** cópia de backup para fora do disco (o backup local não sobrevive à perda do disco). Opções: confiar nos snapshots do Render, ou enviar o backup diário para um storage externo (S3/R2/Drive).
+- **Hospedagem e banco definitivo** (aberto; decisão de 2026-11-04: primeiro o app redondo localmente, depois isto). A volta à Supabase foi **cancelada**. `Dockerfile`/`render.yaml` são ponto de partida, não decisão. Qualquer host precisa de disco persistente para `data.db` e `uploads/`; backup fora desse disco segue pendente.
 
 ---
 

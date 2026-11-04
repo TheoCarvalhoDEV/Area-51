@@ -3,6 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+require('../vendor/libs.js');   // global Libs, como o <script> da página
 
 // utils.js e um script de browser (global), nao um modulo: avalia e pega o global.
 const src = fs.readFileSync(path.join(__dirname, 'utils.js'), 'utf8');
@@ -81,6 +82,21 @@ assert.strictEqual(Utils.isValidCNPJ('11.111.111/1111-11'), false);  // repetido
 assert.strictEqual(Utils.isValidCNPJ('123'), false);
 assert.strictEqual(Utils.isValidCNPJ(''), false);
 assert.strictEqual(Utils.isValidCNPJ(undefined), false);
+
+// CNPJ alfanumerico (desde jul/2026): validar, mascarar e tratar como PJ
+assert.strictEqual(Utils.isValidCNPJ('12.ABC.345/01DE-35'), true);
+assert.strictEqual(Utils.isValidCNPJ('12ABC34501DE36'), false);
+assert.strictEqual(Utils.maskCPFCNPJ('12abc34501de35'), '12.ABC.345/01DE-35');
+assert.strictEqual(Utils.maskCPFCNPJ('52998224725'), '529.982.247-25');
+assert.strictEqual(Utils.isPJLocador({ doc_locador: '12.ABC.345/01DE-35' }), true);
+
+// Extenso: plural certo (a versao feita a mao dizia "mil e um real")
+assert.strictEqual(Utils.writeBRLInWords('R$ 1.001,00'), 'mil e um reais');
+assert.strictEqual(Utils.writeBRLInWords('R$ 2.450,50'), 'dois mil quatrocentos e cinquenta reais e cinquenta centavos');
+assert.strictEqual(Utils.writeBRLInWords(1500), 'mil e quinhentos reais');
+assert.strictEqual(Utils.writeBRLInWords('R$ 0,00'), '');
+assert.strictEqual(Utils.maskCurrency('245000'), 'R$ 2.450,00');
+assert.strictEqual(Utils.dataPorExtenso(new Date('2026-08-05T12:00:00')), '05 de agosto de 2026');
 
 // shareBaseUrl: curto em producao (rota /c em server/index.js), caminho real local
 assert.strictEqual(

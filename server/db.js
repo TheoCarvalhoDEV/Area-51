@@ -11,8 +11,8 @@
 // ═══════════════════════════════════════════════════════
 
 const { DatabaseSync } = require('node:sqlite');
-const path = require('node:path');
 const fs = require('node:fs');
+const path = require('node:path');
 
 const ARQUIVO = process.env.DB_FILE || path.join(__dirname, '..', 'data.db');
 // Ao lado do banco por padrão: no Render isso é /data/backups, dentro do disco
@@ -51,6 +51,44 @@ function backupDiario(banco, pasta, manter = MANTER_BACKUPS) {
   const diarios = fs.readdirSync(pasta).filter(f => DIARIO.test(f)).sort();
   for (const f of diarios.slice(0, -manter)) fs.unlinkSync(path.join(pasta, f));
   return feito;
+}
+
+// Os arquivos de mídia (uploads/) ficam fora do banco, então o backup do banco
+// sozinho restauraria linhas apontando para fotos que não existem mais. Arquivo
+// de upload nunca é alterado depois de gravado (o nome é do servidor e único),
+// então basta um ESPELHO incremental: copia o que ainda não foi copiado.
+//
+// O que some de uploads/ (exclusão, varredura de órfão) vai para
+// `removidos/` no espelho e só é apagado de vez depois de `dias` — o mesmo
+// prazo do backup de banco mais antigo, que ainda pode citá-lo. É o que
+// salva as fotos se a varredura de órfão errar de novo.
+//
+// ponytail: cópia síncrona; só pesa no boot depois de muito upload novo. Se
+// os vídeos crescerem, trocar por fs.promises.copyFile.
+function espelharUploads(origem, destino, dias = MANTER_BACKUPS) {
+  const lixo = path.join(destino, 'removidos');
+  fs.mkdirSync(lixo, { recursive: true });
+  const vivos = new Set(fs.existsSync(origem) ? fs.readdirSync(origem) : []);
+
+  let copiados = 0;
+  for (const nome of vivos) {
+    const alvo = path.join(destino, nome);
+    if (!fs.existsSync(alvo)) { fs.copyFileSync(path.join(origem, nome), alvo); copiados++; }
+  }
+
+  const agora = new Date();
+  for (const nome of fs.readdirSync(destino)) {
+    if (nome === 'removidos' || vivos.has(nome)) continue;
+    const em = path.join(lixo, nome);
+    fs.renameSync(path.join(destino, nome), em);
+    fs.utimesSync(em, agora, agora);   // o prazo conta da remoção, não da cópia
+  }
+  const limite = Date.now() - dias * 864e5;
+  for (const nome of fs.readdirSync(lixo)) {
+    const p = path.join(lixo, nome);
+    if (fs.statSync(p).mtimeMs < limite) fs.unlinkSync(p);
+  }
+  return copiados;
 }
 
 // ── Migrations ──────────────────────────────────────────────────────────
@@ -189,6 +227,36 @@ create table if not exists tenant_links (
 );
 create index if not exists tenant_links_criador_idx
   on tenant_links (created_by, created_at desc);
+`,
+
+  // 2 — mídia da vistoria e do imóvel (branch feat/midia-vistoria, 09/2026).
+  // `if not exists` porque bancos de desenvolvimento daquele branch já criaram
+  // estas tabelas sem migration. A partir da 3, `alter`/`create` comuns.
+  `
+create table if not exists midias (
+  id            text primary key,
+  user_id       text not null references users(id) on delete cascade,
+  inspection_id text not null references inspections(id) on delete cascade,
+  ambiente      integer not null,
+  tipo          text not null,
+  mime          text not null,
+  bytes         integer not null,
+  arquivo       text not null,
+  created_at    text not null
+);
+create index if not exists midias_vistoria_idx on midias (inspection_id, ambiente);
+
+create table if not exists midias_imovel (
+  id          text primary key,
+  user_id     text not null references users(id) on delete cascade,
+  property_id text not null references properties(id) on delete cascade,
+  capa        integer not null default 0,
+  mime        text not null,
+  bytes       integer not null,
+  arquivo     text not null,
+  created_at  text not null
+);
+create index if not exists midias_imovel_idx on midias_imovel (property_id, capa desc, created_at);
 `
 ];
 
@@ -229,6 +297,28 @@ migrar(db, MIGRACOES, (versao) => {
     console.log(`Backup antes das migrations: ${salvo}`);
   }
 });
+
+// ── Pasta dos arquivos de midia ─────────────────────────────────────────
+//
+// Os bytes ficam em disco, nao no banco: decisao do dono do projeto. O preco
+// dela e que o backup passa a ser DUAS coisas (data.db + uploads/) e que a
+// cascata do SQLite apaga a linha sem apagar o arquivo — quem recolhe o orfao e
+// a varredura em rotas/midias.js.
+//
+// `midias` e `midias_imovel` de proposito NAO entram no mapa RECURSOS abaixo: o
+// CRUD generico grava o que o corpo mandar nas colunas declaradas, e `arquivo` e
+// o nome de um arquivo no disco. Nome de arquivo e decisao do servidor, nunca do
+// pedido.
+//
+// Duas tabelas, e nao uma com `inspection_id` anulavel: a foto do imovel vive
+// enquanto o imovel existir, a da vistoria morre com a vistoria. Sao dois ciclos
+// de vida, e cada um e uma cascata diferente. Juntar os dois exigiria afrouxar o
+// NOT NULL de `inspection_id` — que no SQLite significa reconstruir a tabela num
+// banco que ja tem contrato assinado dentro. As duas dividem a MESMA pasta de
+// arquivos, e e por isso que a varredura de orfao em rotas/midias.js precisa
+// olhar as duas: o que ela nao enxerga, ela apaga.
+const PASTA_UPLOADS = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(PASTA_UPLOADS, { recursive: true });
 
 // ── Mapa dos recursos com CRUD genérico ─────────────────────────────────
 //
@@ -344,6 +434,7 @@ function paraDentro(valor, coluna, meta) {
 }
 
 module.exports = {
-  db, RECURSOS, paraFora, paraDentro, ARQUIVO, semMidia, repoeMidia, MARCA_MIDIA,
-  MIGRACOES, migrar, backup, backupDiario, PASTA_BACKUP
+  db, RECURSOS, paraFora, paraDentro, semMidia, repoeMidia,
+  MIGRACOES, migrar, backup, backupDiario, PASTA_BACKUP,
+  PASTA_UPLOADS, espelharUploads
 };

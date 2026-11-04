@@ -33,7 +33,6 @@ assert.strictEqual(Dashboard.countAVencer(contratos), 1);
 // Receita mensal: SO contratos ativos entram na soma (vencido e futuro ficam fora)
 global.Contracts = {};
 global.Storage = {
-  getStats: () => ({ total: 3, thisMonth: 0 }),
   getAll: () => [
     { id: 'a', fields: { valor_aluguel: 'R$ 1.000,00', data_inicio: emDias(-30), data_termino: emDias(300) } }, // ativo
     { id: 'b', fields: { valor_aluguel: 'R$ 5.000,00', data_inicio: emDias(-400), data_termino: emDias(-10) } }, // vencido

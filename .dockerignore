@@ -1,9 +1,14 @@
-.git
 node_modules
-docs
 data.db
 data.db-wal
 data.db-shm
-*.test.js
+uploads
+backups
+.git
+.github
+worktrees
 .claude
 .agents
+docs
+*.log
+*.test.js

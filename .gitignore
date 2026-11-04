@@ -29,10 +29,20 @@ Thumbs.db
 # Documentos com dados pessoais reais (LGPD) — nunca versionar/publicar
 *.docx
 extracted_contract.txt
-.vercel
-node_modules/
 data.db
 data.db-wal
 data.db-shm
 desktop.ini
 backups/
+
+# Midia das vistorias: foto e video de imovel de cliente nao e artefato de
+# repositorio. Faz parte do BACKUP, junto com o data.db — ver README.
+uploads/
+
+# Worktrees isolados (sessoes de agente)
+# SEM ponto no nome: express.sendFile/`send` recusa qualquer caminho cujo
+# algum segmento comece com "." (protecao anti-dotfile do proprio `send`),
+# entao um worktree em .worktrees/ faz toda rota que serve arquivo estatico
+# devolver 404 -- foi assim que a suite acusou 1 teste falho so dentro do
+# worktree. worktrees/ sem ponto nao tem esse problema.
+worktrees/

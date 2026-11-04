@@ -12,6 +12,47 @@ Registro de todas as alterações do sistema, para o time ter uma referência ú
 
 ---
 
+## 2026-11-04 — troca de senha, fim da demonstração e varredura de código morto
+
+Assets e projeto: 2.3.0 → **2.4.0**. Varredura feita com o agente `dead-code-finder` e a auditoria `ponytail-audit`; cada achado reconferido por busca antes de sair.
+
+- **Troca de senha ganhou tela** ("Meu perfil"): a rota existia e era testada, mas nada no app a chamava — ninguém conseguia trocar a senha. A rota agora **exige a senha atual** (como a exclusão de conta): sem isso uma sessão roubada trocava a senha e trancava o dono fora. Teste cobre senha atual ausente/errada (401, nenhuma sessão cai) e a senha nova entrando.
+- **Modo demonstração removido** (decisão do dono do projeto): os 27 desvios `_isStatic()` do `api.js` (~200 linhas de backend falso em `localStorage`), o workflow `pages.yml`, `404.html`, `c/index.html` e `.nojekyll`. Estava quebrado (dados de exemplo com nomes de campo inexistentes) e a hospedagem foi adiada. De carona, `_upload` virou parte do `_req` — repetiam o mesmo tratamento de resposta. `api.js`: 423 → ~150 linhas. O branch remoto `gh-pages` **não** foi apagado (ação no GitHub — decisão sua).
+- **Código morto:** `Dashboard.deleteContract` (a exclusão é do `ContractsView`), `Storage.getStats` (só um stub de teste o citava), exports que ninguém importa em `midias.js`, `db.js` e `sessao.js`.
+- **CSS morto, ~300 linhas:** `.contract-row*`/`.contracts-list` (a lista é `.contrato-linha`), `.template-card*`/`.templates-grid` (substituídos por `.modelo-card` em 24/08), `.stat-icon`/`.stat-delta`, `.card-dark`/`.card-title`, `.form-select`, `.sidebar-footer-title/-text`, `.stagger-1/2`, `.auth-link`, `.form-group-full`. Poda feita por script que entende a estrutura do CSS (tira só o seletor morto de listas mistas como `.form-input, .form-select`).
+- **Duplicação:** os 4 pares `save*`/`delete*` do `Storage` viraram `_salvar`/`_excluir` (com teste); as checagens de segurança dos dois uploads (`midias.js`) viraram `validarArquivo` + `gravarArquivo` — uma correção numa rota não pode faltar na outra.
+- **Avaliado e mantido:** a cadeia de `else if` do roteador e o `JSON.parse` do `admin.js` — trocar não encurtava nada.
+- `termos.html`: saíram Supabase e jsDelivr (nenhum dos dois é usado); entrou "Provedor de hospedagem" com `[PREENCHER]`, já que a hospedagem não foi decidida. `.gitignore`: `.vercel` e `node_modules/` duplicado.
+
+---
+
+## 2026-11-04 — código feito à mão trocado por bibliotecas (sem commit ainda)
+
+Varredura por funções que bibliotecas consolidadas resolvem melhor. Só entrou troca com defeito real por trás; justificativas em `docs/ARQUITETURA.md` R1.
+
+- **Segurança:** `npm audit fix` — `proxy-addr` (crítica: IP forjado via IPv4-mapeado com `trust proxy`), `body-parser` e `qs`. Cabeçalhos pelo `helmet`, agora com CSP por cabeçalho (`frame-ancestors 'none'`) e HSTS. Cookie pelo pacote `cookie`: um `%` malformado derrubava a requisição com 500. Upload confere o formato pelos bytes (`file-type`), não pelo `Content-Type`. CSV do financeiro com `escapeFormulae` (papaparse): nome de inquilino virava fórmula no Excel.
+- **CNPJ alfanumérico** (desde jul/2026) passa a ser aceito, mascarado e tratado como PJ (`@brazilian-utils`); antes era recusado no envio do inquilino.
+- **Valor por extenso** pela mesma biblioteca: corrige "mil e um real" → "mil e um reais".
+- **Pad de assinatura** pelo `signature_pad`: nítido em tela de alta densidade e não apaga ao redimensionar.
+- **Chave do link** agora tem 256 bits reais (32 bytes em base64url); links antigos (16 caracteres) continuam abrindo. `Utils.generateId` passa a ser UUID v4 de CSPRNG.
+- Nativos no lugar de código: `AbortSignal.timeout` (CEP/IP), `Intl` (data por extenso, data relativa), `ipaddr.js` (já vinha com o Express) no limite por IP.
+- Front: bibliotecas em `public/vendor/libs.js` (global `Libs`, 38 KB), gerado por `npm run vendor`.
+
+## 2026-11-04 — integração do `feat/midia-vistoria` e fim da volta à Supabase
+
+**A `main` e o `feat/midia-vistoria` viraram uma linha só** (assets e projeto: **2.3.0**). Os dois tinham divergido em 27/08: o branch seguiu até 09/09 (fotos e vídeos na vistoria, fotos do imóvel, painéis "Ver", limites de tentativa, modo demonstração para o GitHub Pages) e a `main` recebeu hoje as quatro rodadas abaixo. 16 arquivos em conflito, resolvidos assim:
+
+- **Volta à Supabase cancelada** (decisão do dono do projeto). O spec e o plano de 28/08 ganharam o aviso de cancelado no topo e ficam só como registro. A linha é Node + SQLite; hospedagem e banco definitivo ficam para depois do app redondo localmente.
+- **Onde os dois lados fizeram a mesma coisa, ficou a do branch:** o limitador de tentativas (`server/limite.js`, mais completo — cadastro, senha, conta e leitura de link) substituiu o que eu tinha escrito em `auth.js`; o IP do aceite ficou com a versão do branch (que ainda tira o `::ffff:`).
+- **Bug do branch corrigido no merge:** `app.set('trust proxy', process.env.TRUST_PROXY)` passava `'1'` como TEXTO, e o Express lê texto como lista de endereços — "confie no proxy de IP 1", que nunca casa. Atrás de proxy, todo usuário teria o IP do proxy e o limite de 5 logins/min por IP valeria para o site inteiro. Número agora vira número; `loopback`/lista de IPs continuam aceitos.
+- **Bug do branch corrigido no merge:** o `Dockerfile` do branch gravava `data.db` e `uploads/` dentro de `/app` (apagado a cada deploy) e não ligava o cookie `Secure`. Ficou o da `main`, com `UPLOADS_DIR=/data/uploads`.
+- `midias` e `midias_imovel` entraram como **migration 2** (com `if not exists`, porque bancos do branch já as têm).
+- **Backup cobre as fotos:** espelho incremental de `uploads/` em `backups/uploads/`; o que some do app fica 7 dias em `removidos/` — é o que salva as fotos se a varredura de órfão errar de novo (já errou uma vez, ver 04/09).
+- Hash de senha assíncrono, senha mínima 8 e imagens fora da listagem passam a valer também para o código do branch. `midia.test.js` virou `contrato-completo.test.js` (o branch já tinha um `midias.test.js`).
+- **81 testes de backend + 16 arquivos de front passam.**
+
+---
+
 ## 2026-11-04 — imagens fora da listagem
 
 **O login deixou de baixar todas as assinaturas e selfies** (assets 2.0.2 → **2.0.3**). Elas moram em `contracts.fields` como data: URL, ~100 KB por contrato assinado, e `GET /api/contracts` trazia todas a cada login — embora só o editor as mostre. O admin baixava as de **todas as contas**.
@@ -57,7 +98,121 @@ Registro de todas as alterações do sistema, para o time ter uma referência ú
 
 ---
 
+## 2026-09-04
+
+**Botão "Ver" em Imóveis, Clientes e Modelos** (assets e projeto: 2.1.0 → **2.2.0**). Até agora, para ler o que estava cadastrado era preciso abrir **"Editar"** — entrar no modo de mexer para fazer uma coisa que é só de olhar, com o risco de alterar sem querer. Agora cada item abre um painel de leitura.
+
+**Não é só repetir a lista: mostra o que ela esconde.** O cliente tem 13 campos e a tabela mostra 5 — RG, endereço, profissão, renda e observações não apareciam em lugar nenhum. O imóvel escondia CEP, tipo, IPTU, condomínio e observações. E o modelo de contrato só dava duas linhas de resumo: o locador escolhia no escuro e só descobria o que o documento dizia depois de criar um contrato com ele. **Agora dá para ler as cláusulas antes de escolher**, e ver os 40 campos que o modelo vai pedir, agrupados por seção.
+
+**Mostra também o que DEPENDE do registro,** que é a pergunta de quem está com o dedo no "Excluir": o imóvel lista contratos (com status e vigência), vistorias, fotos e o total recebido; o cliente lista os contratos dele. O vínculo cliente↔contrato é por CPF, e os dois lados guardam o documento em formatos diferentes — a normalização que a coluna "Contratos" já fazia virou `ClientsView.contratosDe()`, **uma definição só**, para a coluna e o painel não discordarem sobre quais contratos são de quem.
+
+**Três painéis, e não um componente configurável.** O conteúdo dos três é genuinamente diferente (fotos+contratos+vistorias vs contratos vs cláusulas); um renderizador genérico para três formas distintas seria abstração inventada. O que eles de fato dividem é uma linha "rótulo: valor", e essa virou `Utils.linhaDetalhe()` — as três cópias que eu tinha escrito divergiriam na primeira vez que alguém mexesse numa delas.
+
+**Verificação.** Dois arquivos de teste novos (`clients.test.js`, `templates.test.js`, que não existiam) e casos novos em `properties.test.js`; 15 arquivos de teste no total, todos passando, mais os 72 casos do backend. Cada painel é conferido pelo que a lista esconde, pelos vínculos certos (inclusive que contrato de OUTRO CPF não entra), pelo estado vazio explicado em vez de espaço em branco, e pelo escape de observação com HTML — é por ali que entra texto digitado. **O teste de tokens pegou um erro:** usei `var(--text-secondary)`, que não existe no tema. Os três painéis foram renderizados em Chrome headless e conferidos por captura.
+
+---
+
+## 2026-09-04
+
+**Foto do imóvel no cartão de Imóveis** (assets e projeto: 2.0.0 → **2.1.0**). Até agora a faixa do cartão mostrava a inicial do nome sobre um gradiente, com um comentário no código dizendo que a maquete pedia foto ali mas "não existe coluna nem bucket para isso". Passa a existir: até 8 fotos por imóvel, uma delas a capa, com miniaturas no próprio cartão.
+
+**Reaproveita a máquina que a vistoria já tinha,** em vez de criar outra. A rota é a mesma (`server/rotas/midias.js`), a pasta de arquivos é a mesma (`uploads/`), o teto de 8 MB e a lista branca de formatos são os mesmos, e a redução para 1600px antes do upload também. O que entrou de novo é o dono: `midias_imovel`, com cascata em `properties`.
+
+**Duas tabelas de mídia, e não uma com `inspection_id` anulável.** Os ciclos de vida são diferentes — a foto da vistoria morre com a vistoria, a do imóvel vive enquanto o imóvel existir — e afrouxar o `NOT NULL` no SQLite significa reconstruir a tabela num banco que já guarda contrato assinado.
+
+**A armadilha que isso criou, e o teste que a prova.** As duas tabelas dividem a pasta `uploads/`, e a varredura de órfão apaga do disco todo arquivo que não estiver na tabela que ela conhece. Uma tabela nova sem mexer na varredura significa: **toda foto de imóvel apagada em silêncio na primeira tela de vistoria que abrisse.** O teste `a varredura de orfao NAO apaga a foto do imovel` foi escrito antes da correção e falhou de verdade — a varredura agora consulta as duas.
+
+**Capa explícita, e não "a primeira que subiu".** A primeira foto vira capa sozinha (senão o cartão teria foto e mostraria o estado vazio assim mesmo), e há um botão por miniatura para trocar. Quando a capa é apagada, **o servidor promove a seguinte** — refazer essa conta no cliente daria duas fontes para a mesma verdade. O estado vazio antigo continua: imóvel sem foto ainda mostra a inicial, porque inventar uma imagem de exemplo faria o cartão mentir sobre um dado que ninguém cadastrou.
+
+**Verificação.** 72 casos no backend (11 novos) e os 13 arquivos de teste do front passam. Os limites e a checagem de dono foram conferidos por mutação — quebrando cada guarda de propósito para ver o teste acusar. Ponta a ponta contra o servidor real: PNG sobe, volta byte a byte idêntico pela rota autenticada, e o arquivo aparece no disco com nome escolhido pelo servidor. **Um defeito só apareceu na captura de tela:** `place-items: center` na faixa dimensiona o item pelo conteúdo, então a foto de capa ignorava os 128px e cobria o cartão inteiro — corrigido com `stretch` e `overflow`. Nenhum teste pegaria isso.
+
+**Também atualizado:** `docs/ARQUITETURA.md` dizia "9 tabelas" (já estava desatualizado em uma antes desta mudança, pela `midias`) — agora são 11, com as duas de mídia descritas e a regra da varredura registrada.
+
+---
+
+## 2026-08-28
+
+**Decidida a volta a Supabase — Auth, Postgres e Storage.** Decisao do dono do projeto, tomada depois de duas rodadas de contraponto. O motivo declarado e um so, e vale registrar porque explica a escolha: *"quero um lugar simples e facil para o banco de dados, sem ter que ficar rodando no terminal, como eu fazia no terminal do Supabase"* — o Table Editor de volta.
+
+Foram oferecidas duas alternativas mais baratas para exatamente esse motivo (extensao SQLite Viewer no VS Code, DB Browser for SQLite — zero migracao, zero infraestrutura). O dono optou pela Supabase mesmo assim, e pelo escopo completo. **Isto desfaz a migracao de 26/08.**
+
+Desenho em `docs/superpowers/specs/2026-08-28-volta-supabase-design.md`, e o que ele muda em relacao a um pedido de "migrar tudo" e a **rota**: tres fases, cada uma terminando com o sistema funcionando.
+
+- **Fase 1 — Postgres (~2 dias):** a Supabase vira o banco na nuvem com painel; servidor, login, `limite.js` e os 59 testes ficam como estao. **O motivo declarado da migracao ja esta satisfeito ao fim desta fase.**
+- **Fase 2 — Storage (~1 dia):** some `uploads/`, some a varredura de orfao, some o backup em duas partes.
+- **Fase 3 — Auth e RLS (~1 a 2 semanas):** a cara. As contas **nao migram** (scrypt nao vira bcrypt), as 4 RPCs `SECURITY DEFINER` do link precisam ser reescritas, e os 59 testes de escopo viram politicas RLS.
+
+O spec registra o que se **perde**, item por item, porque isso nao pode ficar implicito: o limite por conta e por bloco IPv6 (de ontem), a suite que roda sem infraestrutura, os zero segredos no repositorio, e — o mais serio — **o IP do aceite volta a sair de `x-forwarded-for`**, o cabecalho forjavel que a correcao de ontem eliminou. Ha mitigacao obrigatoria proposta (Edge Function como porta do `finalize`).
+
+Duas decisoes ficaram pendentes com o dono: **migrar ou recomecar os dados** (diferente de 26/08, agora ha um contrato assinado com valor juridico — selfie, assinatura, hash e carimbo do servidor) e a mitigacao do §7. E um criterio de parada explicito: se o painel ja resolver na Fase 1 ou 2, parar ali e vitoria.
+
+**Os quatro furos do proprio rate limit, fechados.** A analise critica do que eu tinha escrito na vespera achou dois problemas serios e dois de segunda ordem:
+
+- **IPv6 anulava o limite.** A chave era o endereco inteiro — mas um cliente IPv6 nao recebe UM endereco, recebe um bloco **/64**: 18 quintilhoes deles. Trocar de endereco dentro do proprio bloco e uma linha de configuracao, e cada troca ganhava orcamento novo. Agora a chave e o **bloco**, com a forma comprimida (`2001:db8::1`) expandida antes de cortar — senao o mesmo endereco escrito de duas maneiras viraria duas chaves. De quebra resolve o crescimento do Map, que ganhava uma entrada por tentativa.
+- **Nao havia limite por CONTA.** O teto por IP protege a porta, nao a conta: mil enderecos fazendo cinco tentativas cada nao encostam no teto, e sao cinco mil por minuto contra a mesma senha. Entrou um contador chaveado pelo e-mail — 20 falhas por hora. **Conta so o que falha, e o acerto zera**: contar acerto junto criaria um jeito barato de trancar a conta de alguem de fora, so queimando as tentativas no e-mail dela.
+- **Upload de midia nao tinha teto.** A cota por ambiente (8 fotos, 2 videos) nao impede criar vistorias e ambientes sem parar; um laco de `fetch` de uma sessao legitima enchia o disco, que nao tem cota. Agora sao 120/hora **por conta** (nao por IP: quem sobe arquivo ja esta autenticado, e o disco que enche e o dele), e o limite roda **antes** do parser de corpo — pedido recusado nao aloca 25 MB.
+- **A armadilha que esperava o deploy.** Com `TRUST_PROXY` indefinida atras de um proxy reverso, o IP de todo mundo vira o do proxy: o limite de 5 logins/min deixa de ser por pessoa e vira um teto **global** — o sexto login do dia, de qualquer um, e recusado — e o certificado passa a registrar o IP errado. O servidor agora **avisa no console** no primeiro pedido que chega assim, e o README explica os dois lados (ligar sem proxy deixa forjar o IP; nao ligar com proxy quebra o limite).
+
+Nenhum dos dois primeiros seria resolvido trocando por `express-rate-limit`: sao furos de **desenho da chave**, nao de contagem. Quatro testes novos, incluindo o que prova que dois enderecos do mesmo /64 dividem o mesmo orcamento e o que prova que acertar a senha zera o contador da conta. **59 testes de backend.**
+
+**A selfie de validacao agora amplia com um clique.** Ela sai com 100px de altura no certificado — tamanho de documento impresso, nao de conferencia: quem precisa comparar o rosto com o documento na mao nao enxergava nada, e a folha nao pode crescer por causa disso.
+
+A mudanca entrou no **unico sink de imagem do sistema** (`Utils.imgSeguro`), entao vale de uma vez para a selfie, a rubrica manuscrita e a foto de vistoria — sem tres implementacoes. O handler recebe o **elemento** (`this`), nunca a URL: a selfie tem ~30 KB de base64, e enfiar isso dentro de um atributo `onclick` seria enorme e faria dado do inquilino virar codigo.
+
+Dois detalhes que o teste de seguranca cobrou na hora: o cursor `zoom-in` foi para uma **classe CSS** em vez de ser concatenado no atributo `style` (a concatenacao sujava o valor que o chamador pediu), e a caixa de zoom tem `display: none` na impressao — aberta na hora do `window.print()`, ela sairia por cima da folha. Tres asserts novos no `seguranca.test.js`, incluindo o que garante que a URL nao entra no `onclick`.
+
+**Criar link com id repetido devolvia 500.** O `insert` em `tenant_links` era puro, sem tratar conflito de chave: uma retentativa depois de conexao instavel — mesmo id de novo — batia na constraint e virava "Erro interno", que nao diz nada a quem chama. Agora e **409** com a frase certa, e o payload original fica intacto. Vale tambem para o caso hostil: outra conta mandando um id conhecido recebe a mesma recusa, **sem descobrir de quem e o link** e sem sobrescrever nada. Dois testes.
+
+**`arquitetura_sistema.md` reescrito com os nomes reais.** Chegou uma versao gerada do documento com **16 nomes de coluna errados** (`title` por `name`, `amount` por `rent_value`, `vistoria_id` por `inspection_id`, `key_proof_hash` por `key_proof`, `users.created_at` por `criado_em`…) e quatro erros de comportamento — o pior deles um `AND finalized = 0` na leitura do link, que se fosse verdade impediria o locador de importar o contrato assinado. A estrutura dela era melhor que a nossa (atores separados, `autonumber`, o passo de importacao); ficou a estrutura, entraram os fatos conferidos contra `pragma table_info`. O documento agora abre dizendo que a referencia e `server/db.js`, e que quando divergirem quem esta errado e o diagrama.
+
+**Diagramas de estado** (`arquitetura_sistema.md` §5): ciclo de vida do contrato — o derivado das datas (`Pendente → A Iniciar → Ativo → Vencido`) separado do gravado (`is_finalized`, caminho so de ida) — e o da vistoria (`Rascunho ↔ Fechada`). A separacao e o ponto: estado derivado nunca envelhece; estado gravado envelhece se ninguem atualizar.
+
+**`ARQUITETURA.md` R2** ganhou as quatro regras que o trabalho desta semana criou de fato: recurso cujo dado o cliente nao pode escolher fica fora do `RECURSOS` (por que `profiles` e `midias` tem rota propria), protecao de porta e middleware e nao `if` em handler (`sessao.js` + `limite.js`), e arquivo servido ao usuario passa por rota autenticada, nunca por pasta estatica. O mapa de modulos do servidor tambem passou a existir.
+
+**Documentacao: escrito o que faltava, corrigido o que mentia.** Um levantamento das quatro fases pedidas mostrou que arquitetura, fluxos, debito tecnico e auditoria de seguranca **ja estavam documentados** (`docs/ARQUITETURA.md`, `arquitetura_sistema.md`) — reescrever criaria duas verdades concorrentes. Foi escrito so o que nao existia:
+
+- **`docs/REFERENCIA.md`** (novo): Parte I com os requisitos funcionais e as **regras de negocio** de verdade — status derivado por datas e nunca digitado, primeira conta vira admin, lista branca da ingestao, saida da vistoria herdando a entrada, vencimento que nunca cai antes do inicio do contrato. Parte II com o **contrato dos 24 endpoints**: metodo, corpo, sucesso e erro, incluindo por que `gravou: false` do link nao e erro HTTP.
+- **`arquitetura_sistema.md` corrigido**: o diagrama descrevia colunas que nao existem — `users.created_at` (e `criado_em`), `financial_records.amount` (e `rent_value`), status em ingles (`draft`/`paid`) onde o banco guarda `Rascunho`/`Pago`, e `tenant_links.user_id` (e `created_by`). Documentacao que mente e pior que documentacao nenhuma. Entrou tambem a tabela `midias`, de hoje.
+- **README**: as **cinco variaveis de ambiente** (`PORT`, `DB_FILE`, `UPLOADS_DIR`, `HTTPS`, `TRUST_PROXY`) estavam no codigo e em documento nenhum — inclusive as duas de seguranca, cujo efeito de ligar (ou nao ligar) so se descobria lendo `sessao.js` e `index.js`.
+- **Check de sintaxe na suite** (`sintaxe.test.js`): sem build, um parentese a menos em `editor.js` so aparecia quando alguem abria aquela tela. Dez arquivos do front — os maiores — nao eram carregados por teste nenhum. `node --check` em **44 arquivos**, sem dependencia nova. Verificado por mutacao: quebrando o `editor.js` de proposito, o teste falha.
+
+**Login e leitura de link ganharam teto por IP.** Nao havia limite de tentativas em duas portas publicas: `POST /api/auth/entrar` (forca bruta de senha) e `GET /api/links/:id` (varredura de UUID atras de contrato). Agora sao 5 logins/min, 10 cadastros/hora, 30 leituras de link/min e 20 escritas/min, por IP, com `429` e `Retry-After`.
+
+Tres detalhes que decidem se isso protege ou so parece proteger:
+
+- **A chave do limite e `escopo + IP`, nunca a URL.** Com o `:id` na chave, cada UUID tentado teria orcamento proprio e a varredura — o ataque que a regra existe para barrar — passaria inteira sem encostar no teto. Ha teste que pede 32 UUIDs *diferentes* e exige que o teto apareca.
+- **O teto vale para a senha certa tambem.** Se o acerto passasse livre, bastaria intercalar um login conhecido para zerar o contador.
+- **Sem dependencia nova.** `express-rate-limit` resolveria, mas traz cinco transitivas para substituir trinta linhas, e o que ele da a mais (store compartilhado, janela deslizante) supoe varios processos — este e um, com um arquivo de banco. Quando houver mais de um, o `Map` deixa de bastar e o pacote entra pelo motivo certo. Registrado em `server/limite.js`.
+
+O scrypt da senha ja custava ~70ms por tentativa, mas freio de CPU nao e limite: com paralelismo, um dicionario de 10 mil senhas sai em minutos. Com 5/min por IP, vira 33 horas contra uma unica conta.
+
+---
+
 ## 2026-08-27
+
+**Vistoria ganhou foto e video por ambiente** (ramo `feat/midia-vistoria`, 7 commits). A vistoria existe para sustentar uma conversa que acontece meses depois — reter ou devolver a caucao — e ate aqui ela guardava so texto. Texto contra texto e a palavra de um contra a do outro.
+
+Desenho em `docs/superpowers/specs/2026-08-27-midia-vistoria-design.md`, plano em `docs/superpowers/plans/2026-08-27-midia-vistoria.md`. Tres decisoes foram do dono do projeto; em duas a recomendacao era outra, e o preco de cada uma virou trabalho no lugar de ressalva:
+
+| Decisao | O que ela custou, e onde isso foi pago |
+|---|---|
+| Foto **e** video curto | Teto de 8 MB (foto) e 25 MB (video), 8 fotos e 2 videos por ambiente, corte automatico de gravacao em 30s. A CSP ganhou `media-src 'self' blob:` — sem a diretiva, `default-src` bloqueia o preview `blob:` e a tela fica preta. |
+| Arquivos em `uploads/`, nao blob no banco | Backup passou a ser **duas coisas** (`data.db` + `uploads/`), registrado no README; e a cascata do SQLite apaga a linha sem apagar o arquivo, entao entrou uma varredura de orfao na leitura — o mesmo desenho do `expurgar()` dos links, que ja tinha dispensado agendador. |
+| Camera dentro da pagina | `getUserMedia` + `MediaRecorder`, **com o seletor de arquivo ao lado**: camera na pagina nao existe em contexto nao-seguro, a permissao pode ser negada e a maquina pode nao ter camera. Sem o fallback, a funcionalidade simplesmente nao existiria nesses casos. |
+
+**Onde a midia mora:** tabela `midias` propria, **fora do mapa `RECURSOS`**. No CRUD generico o corpo do pedido decide o conteudo das colunas declaradas, e uma delas e `arquivo` — o nome de um arquivo real no disco. Cliente que escolhe nome de arquivo le o arquivo de qualquer um. Pela mesma razao a leitura passa por `GET /api/midias/:id/arquivo` com sessao e `sendFile` (que ainda trata `Range` de graca, e e com Range que o `<video>` busca no meio sem baixar 25 MB), **nunca por pasta estatica**: nome adivinhavel vazaria foto de imovel de cliente por URL.
+
+**Upload sem dependencia nova:** corpo cru (`express.raw`), nao multipart. O navegador manda o Blob e o `Content-Type` dele diz o que e. O `package.json` continua com uma dependencia so.
+
+**A armadilha do indice posicional.** `ambiente` e a posicao dentro de `inspections.rooms`: tirar a Sala faz a Cozinha virar 0, e sem tratar isso a foto da sala apagada reaparece na cozinha — a vistoria passaria a documentar o comodo errado. `POST /api/midias/reindexar` apaga a midia do ambiente removido e desloca as seguintes, num DELETE e um UPDATE na mesma requisicao. No cliente seria uma sequencia de pedidos que uma recarga no meio deixa pela metade.
+
+**A tela mudou junto:** o estado do ambiente virou tres botoes no lugar do `select` (um toque em vez de dois, e a cor comunica antes da leitura), o cartao ganhou a faixa de miniaturas com "+ Foto" e "+ Video", as observacoes cairam de 3 para 2 linhas, e o aside passou a responder a pergunta de quem esta vistoriando: "3 de 5 ambientes com midia". Saiu o cartao que dizia que anexar foto exigia bucket da Supabase.
+
+**Verificacao: 50 testes de backend** (eram 37) **e 12 do front** (`npm test`). Os do backend cobrem escopo por conta nas quatro rotas de midia, lista branca de formato, os dois tetos, a quantidade por ambiente, a cascata ao apagar a vistoria, a varredura de orfao e a reindexacao. O do front confere que os limites do cliente sao **os mesmos** do servidor — divergir faria o locador esperar o upload inteiro para ouvir nao.
+
+A parte de camera nao tem seam de teste honesto em Node e segue a regra do ARQUITETURA para tela sem cobertura: **auditoria de runtime**, pendente de execucao no navegador.
+
+---
 
 **Nenhuma edicao de contrato chegava ao banco** — e era isso que criava a "copia" do contrato assinado.
 
@@ -68,6 +223,14 @@ O efeito visivel foi no fluxo do inquilino: ao gerar o link, o `cloud_id`/`cloud
 Correcao numa linha so, no ponto por onde passam os 5 recursos: `created_at` reusa o valor da linha existente (o `set` do upsert continua sem incluir a coluna, entao a data de criacao segue imutavel). Coberto por teste que falha sem a correcao — **36 testes do backend passam**.
 
 Contratos ja partidos em dois nao se juntam sozinhos, e o caso real tinha perdido o original (apagado pela tela). `reparo-contrato-copia.js` reconstroi o contrato a partir do **payload cifrado do proprio link** — a `cloud_key` fica na linha do contrato, entao da para decifrar o que o inquilino leu e assinou: locador, imovel, prazo, valor e as duas assinaturas voltaram inteiros. O carimbo do aceite continua vindo do servidor (`tenant_links.finalized_at`), nunca do payload.
+
+**Contrato de teste em um clique.** Na tela de Modelos, cada modelo ganhou "Contrato de teste (preenchido)": cria o contrato com os 40 campos preenchidos e abre o editor, pronto para gerar o link do inquilino — em vez de digitar tudo de novo a cada teste do fluxo. Os valores saem da DEFINICAO do modelo (tipo, mascara, nome do campo), nao de uma fixture: lista fixa com os 86 campos dos tres modelos ficaria velha no primeiro campo novo, e o teste passaria mentindo. O botao so aparece rodando local (`Utils.ehLocal`, a mesma checagem que o `shareBaseUrl` ja fazia) — ferramenta de teste no painel de um locador de verdade e dado falso esperando ser confundido com contrato.
+
+**E o teste desse gerador achou um bug de dois meses:** a **minuta simples nunca conseguiu gerar link do inquilino**. A porta do `generateTenantLink` era uma lista fixa de cinco campos, e aquele modelo nao tem `dia_vencimento` — pedia um campo que nao existe no formulario, entao nao havia como satisfazer. A regra virou `Utils.faltamParaOLink(fields, template)`, que so cobra o que o modelo tem, e agora o editor e o teste chamam a MESMA funcao. Junto: a data por extenso da assinatura, que estava duplicada com um array de meses proprio no editor, passou a sair de `Utils.dataPorExtenso`.
+
+**O IP do aceite era forjavel por quem assina.** `ipDe()` lia `X-Forwarded-For` direto do pedido — e esse e um cabecalho como outro qualquer: o proprio inquilino escolhia o IP que sairia no certificado. O unico campo da trilha que existe justamente por nao ser redigido por quem assina era o mais facil de falsificar. Agora vale `req.ip`, com `trust proxy` **desligado por padrao** (`app.set('trust proxy', process.env.TRUST_PROXY || false)`): sem proxy na frente, vale o endereco do socket, que ninguem forja; atras de um proxy de verdade o operador liga por variavel de ambiente. Teste no `servidor.test.js` manda `X-Forwarded-For: 8.8.8.8` e prova que ele nao vira evidencia — sem a correcao, virava.
+
+**O certificado dizia "::1" como se fosse endereco de internet.** Loopback e rede privada nao identificam origem externa: dizem que a pessoa assinou na mesma maquina (ou rede) do servidor. `Utils.ipDeEvidencia` passa a imprimir o IP com essa ressalva, e limpa o `::ffff:` do mapeamento IPv4-em-IPv6 do Node, que ia sair cru na folha. Folha que se chama certificado nao pode insinuar mais do que sabe. Seis casos no `ingestao.test.js`.
 
 **Vistorias: a de saida passou a existir.** O `tipo` era gravado como `'Entrada'` na criacao e nao havia caminho nenhum para muda-lo — ou seja, metade do proposito da tela (comparar entrada x saida para decidir a caucao) era inalcancavel pela interface. A criacao virou formulario: imovel (lista, nao mais um `prompt()` do navegador pedindo um numero), momento e data. E a **saida nasce com os ambientes da ultima entrada FECHADA do mesmo imovel** — comparar exige os dois lados com a mesma lista, e redigitar e onde o ambiente que interessava some; estado e observacao nao vem junto, porque sao o que a saida vai constatar. Momento e data ficam corrigiveis enquanto a vistoria e rascunho; vistoria fechada nao muda, que e de onde vem o valor de prova dela. Coberto por `vistorias.test.js` (6 casos, na suite do `npm test`).
 

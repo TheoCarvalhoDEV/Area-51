@@ -87,6 +87,25 @@ const Admin = {
           </div>
         </div>
 
+        <form class="card" style="margin-top: 24px;" onsubmit="event.preventDefault(); Admin.trocarSenha(this)">
+          <h3 class="section-title">Trocar senha</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="senha_atual">Senha atual</label>
+              <input type="password" class="form-input" id="senha_atual" autocomplete="current-password" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="senha_nova">Senha nova</label>
+              <input type="password" class="form-input" id="senha_nova" autocomplete="new-password" minlength="8" required placeholder="Mín. 8 caracteres">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="senha_confirma">Repita a senha nova</label>
+              <input type="password" class="form-input" id="senha_confirma" autocomplete="new-password" minlength="8" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-secondary">Trocar senha</button>
+        </form>
+
         <div class="card card-perigo" style="margin-top: 24px;">
           <h3 class="section-title" style="color: var(--danger);">Excluir conta</h3>
           <p class="page-subtitle" style="margin: 0 0 14px;">
@@ -149,6 +168,25 @@ const Admin = {
   },
 
   // Exclusão da própria conta (LGPD, art. 18): DELETE /api/auth/conta apaga tudo em cascata.
+  // O servidor cobra a senha atual e o mínimo de 8; aqui só se adianta o aviso
+  // de confirmação, que o servidor não tem como saber.
+  trocarSenha(form) {
+    const atual = form.querySelector('#senha_atual').value;
+    const nova = form.querySelector('#senha_nova').value;
+    if (nova !== form.querySelector('#senha_confirma').value) {
+      Utils.toast('A confirmação não bate com a senha nova.', 'error');
+      return;
+    }
+    const botao = form.querySelector('button[type="submit"]');
+    botao.disabled = true;
+    Api.trocarSenha(atual, nova).then(() => {
+      form.reset();
+      Utils.toast('Senha trocada. Outros aparelhos conectados foram desconectados.');
+    }).catch(err => {
+      Utils.toast('A senha não foi trocada: ' + (err.message || err), 'error');
+    }).finally(() => { botao.disabled = false; });
+  },
+
   deleteAccount() {
     if (!App.user) return;
     // Senha, não uma palavra digitada: a rota apaga tudo de forma irreversível e

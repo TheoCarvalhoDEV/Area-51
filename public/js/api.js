@@ -19,14 +19,17 @@ const Api = {
   _ouvintes: [],
 
   // ── Transporte ────────────────────────────────────────────────────────
-  async _req(metodo, caminho, corpo) {
+  // `arquivo`: upload de mídia. O corpo vai cru, com o Content-Type do próprio
+  // arquivo — é assim que a rota dispensa multipart. O resto é JSON.
+  async _req(metodo, caminho, corpo, arquivo) {
     let r;
     try {
       r = await fetch('/api/' + caminho, {
         method: metodo,
-        headers: corpo === undefined ? {} : { 'Content-Type': 'application/json' },
+        headers: arquivo ? { 'Content-Type': arquivo.type }
+          : corpo === undefined ? {} : { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: corpo === undefined ? undefined : JSON.stringify(corpo)
+        body: arquivo || (corpo === undefined ? undefined : JSON.stringify(corpo))
       });
     } catch (e) {
       // Falha de rede é diferente de recusa do servidor, e quem chama precisa
@@ -53,6 +56,7 @@ const Api = {
 
   // ── CRUD dos recursos ─────────────────────────────────────────────────
   list(recurso) { return this._req('GET', recurso); },
+  // Um registro inteiro (o contrato com as imagens que a listagem omite).
   get(recurso, id) { return this._req('GET', recurso + '/' + encodeURIComponent(id)); },
   save(recurso, item) { return this._req('PUT', recurso + '/' + encodeURIComponent(item.id), item); },
   remove(recurso, id) { return this._req('DELETE', recurso + '/' + encodeURIComponent(id)); },
@@ -70,6 +74,28 @@ const Api = {
   gravarLink(id, payload, keyProof, finalizar) {
     return this._req('PUT', 'links/' + encodeURIComponent(id),
       { payload, key_proof: keyProof, finalize: !!finalizar });
+  },
+
+  // ── Mídia da vistoria e do imóvel ─────────────────────────────────────
+  // `removerMidia` serve as duas — a rota de exclusão é a mesma.
+  listarMidias(vistoriaId) { return this._req('GET', 'midias?vistoria=' + encodeURIComponent(vistoriaId)); },
+  removerMidia(id) { return this._req('DELETE', 'midias/' + encodeURIComponent(id)); },
+  reindexarMidias(vistoriaId, removido) {
+    return this._req('POST', 'midias/reindexar', { vistoria: vistoriaId, removido: removido });
+  },
+  enviarMidia(vistoriaId, ambiente, tipo, arquivo) {
+    return this._req('POST',
+      `midias?vistoria=${encodeURIComponent(vistoriaId)}&ambiente=${ambiente}&tipo=${tipo}`,
+      undefined, arquivo);
+  },
+
+  // Sem filtro por imóvel: a tela de imóveis desenha todos os cartões de uma vez.
+  listarMidiasImovel() { return this._req('GET', 'midias/imovel'); },
+  definirCapaImovel(midiaId) {
+    return this._req('POST', 'midias/imovel/' + encodeURIComponent(midiaId) + '/capa');
+  },
+  enviarMidiaImovel(imovelId, arquivo) {
+    return this._req('POST', 'midias/imovel?imovel=' + encodeURIComponent(imovelId), undefined, arquivo);
   },
 
   // ── Administração ─────────────────────────────────────────────────────
@@ -130,6 +156,7 @@ const Api = {
     }
   },
 
-  trocarSenha(senha) { return this._req('PUT', 'auth/senha', { senha }); },
+  // A senha atual é cobrada no servidor: sessão roubada não troca a senha.
+  trocarSenha(atual, nova) { return this._req('PUT', 'auth/senha', { atual, senha: nova }); },
   excluirConta(senha) { return this._req('DELETE', 'auth/conta', { senha }); }
 };

@@ -12,36 +12,6 @@
   gap: 10px;
 }
 
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.stat-icon.blue {
-  background: var(--primary-light);
-  color: var(--primary);
-}
-
-.stat-icon.amber {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-
-.stat-icon.green {
-  background: var(--success-bg);
-  color: var(--success);
-}
-
 .stat-value {
   font-size: 34px;
   font-weight: 600;
@@ -57,21 +27,6 @@
   color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-}
-
-.stat-delta {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-light);
-  margin-top: 2px;
-}
-
-.stat-delta.positive {
-  color: var(--success);
-}
-
-.stat-delta.warning {
-  color: var(--warning);
 }
 
 /* Recent Contracts List */
@@ -98,116 +53,10 @@
   color: var(--text-main);
 }
 
-.contracts-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.contract-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 22px;
-  border-bottom: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: background var(--transition);
-}
-
-/* A linha da Gestão de Contratos carrega a grade de detalhes e fica alta:
-   ícone e preço sobem para o topo, junto do nome. As linhas curtas do painel
-   (sem grade) continuam centradas. */
-.contract-row:has(.cliente-detalhes) {
-  align-items: flex-start;
-}
-
-.contract-row:last-child {
-  border-bottom: none;
-}
-
-.contract-row:hover {
-  background-color: var(--row-hover-bg);
-}
-
-.contract-row-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background-color: var(--primary-light);
-  color: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.contract-row-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.contract-row-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.contract-row-name {
-  font-weight: 700;
-  font-size: 14.5px;
-  color: var(--text-main);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 .contract-row-meta {
   font-size: 12.5px;
   color: var(--text-light);
   margin-top: 2px;
-}
-
-.contract-row-date {
-  font-size: 12.5px;
-  color: var(--text-light);
-  white-space: nowrap;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Aluguel na tela de Contratos: o número perdia o sentido sozinho no canto,
-   então ganhou rótulo — e saiu da grade de detalhes, onde se repetia. */
-.contract-row-preco {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.contract-row-preco-rotulo {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-light);
-}
-
-.contract-row-value {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-main);
-}
-
-.contract-row-delete {
-  color: var(--danger);
-  padding: 0.25rem;
-}
-
-.contract-row-delete svg {
-  width: 20px;
-  height: 20px;
 }
 
 /* Resumo do cliente no topo do editor.
@@ -354,26 +203,9 @@
 /* No celular a coluna é estreita demais para o ícone decorativo dividir espaço
    com a grade de dados — ele sai e a informação fica. */
 @media (max-width: 640px) {
-  .contract-row {
-    padding: 14px 16px;
-    gap: 12px;
-  }
 
-  .contract-row:has(.cliente-detalhes) .contract-row-icon {
-    display: none;
-  }
-
-  /* "ALUGUEL MENSAL" é o item mais largo da coluna do preço e, em tela de
-     celular, o que decide se a linha cabe. Encurta o rótulo, não o número. */
-  .contract-row-preco-rotulo {
-    font-size: 9px;
-    letter-spacing: 0;
-  }
-
-  .contract-row-date {
-    gap: 0.6rem;
-  }
-
+  
+  
   /* Uma coluna só: o minmax(148px) do desktop virava a largura mínima da linha
      inteira e empurrava o aluguel para fora da tela. */
   .cliente-detalhes {
@@ -504,8 +336,9 @@
   flex-direction: column;
 }
 
-/* Faixa de capa: substitui a foto que o sistema não guarda. Cor de token,
-   inicial grande — identifica o cartão sem inventar uma imagem. */
+/* Faixa de capa: a foto do imóvel quando existe uma marcada como capa. Sem
+   foto, cor de token e inicial grande — identifica o cartão sem inventar uma
+   imagem que o dono não cadastrou. */
 .imovel-capa {
   height: 128px;
   flex-shrink: 0;
@@ -522,6 +355,55 @@
   text-transform: uppercase;
   opacity: 0.75;
 }
+
+/* A foto preenche a faixa inteira. `stretch` não é enfeite: `place-items:
+   center` acima dimensiona o item pelo conteúdo, e aí `height: 100%` resolve
+   para a altura natural da imagem — ela transborda os 128px e cobre o cartão
+   inteiro. O `overflow` da faixa é a segunda tranca. */
+.imovel-capa { overflow: hidden; }
+.imovel-capa img {
+  grid-area: 1 / 1;
+  align-self: stretch;
+  justify-self: stretch;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* A mesma faixa da vistoria, em miniatura: o cartão do imóvel tem cerca de um
+   terço da largura daquela tela, e 116px ali cabem duas fotos e olhe lá. */
+.midia-faixa-mini .midia-item,
+.midia-faixa-mini .midia-add {
+  width: 64px;
+  height: 64px;
+}
+.midia-faixa-mini { gap: 6px; margin-bottom: 0; }
+.midia-faixa-mini .midia-add { font-size: 11.5px; }
+
+/* "Capa" é rótulo na foto que já é capa e botão nas outras — mesmo lugar,
+   mesma forma, para o olho comparar sem procurar. */
+.midia-capa-marca,
+.midia-capa-btn {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 1px 5px;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.midia-capa-marca { background: var(--primary); color: #fff; }
+/* Sempre visível, nunca só no hover: em tela de toque não existe hover, e a
+   troca de capa ficaria inalcançável justo no aparelho que tira a foto. */
+.midia-capa-btn {
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+.midia-capa-btn:hover { background: var(--primary); }
 
 .imovel-corpo {
   padding: 20px 22px;
@@ -687,6 +569,99 @@
 /* ═══════════════════════════════════════════════════════
    Vistoria — detalhe em duas colunas (tela nova de 2026-08-24)
    ═══════════════════════════════════════════════════════ */
+/* — Estado do ambiente: tres botoes no lugar do select —
+   Um toque em vez de dois (abrir, escolher), e a cor comunica antes da leitura.
+   Select ainda faz sentido em lista longa; aqui a escolha e de tres. */
+.estado-botoes {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.estado-botao {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.estado-botao:hover:not(:disabled) { border-color: var(--border-focus); }
+.estado-botao:disabled { cursor: default; opacity: 0.7; }
+
+.estado-botao.ativo {
+  font-weight: 600;
+  color: var(--text-main);
+  border-color: var(--border-focus);
+  background: var(--primary-light);
+}
+
+/* — Faixa de midia do ambiente —
+   Rola na horizontal em vez de quebrar em grade: a leitura e "o que tem deste
+   comodo", e a fila mantem isso em uma linha so. */
+.midia-faixa {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.midia-item {
+  position: relative;
+  flex: 0 0 auto;
+  margin: 0;
+  width: 116px;
+  height: 116px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  background: var(--surface-bg);
+}
+
+.midia-item img,
+.midia-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.midia-remover {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.midia-add {
+  flex: 0 0 auto;
+  width: 116px;
+  height: 116px;
+  border: 1px dashed var(--border-focus);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.midia-add:hover { background: var(--primary-light); }
+
 .vistoria-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 312px;
