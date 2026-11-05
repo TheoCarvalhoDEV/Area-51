@@ -1399,7 +1399,7 @@ button.nav-item {
   min-height: 4px;
 }
 
-.barra.aberta { background: var(--color-accent-300); }
+.barra.aberta { background: var(--color-accent-400); }
 
 .barra-mes {
   font-size: 11px;
@@ -1430,7 +1430,7 @@ button.nav-item {
   background: var(--color-accent-2-500);
 }
 
-.legenda i.aberta { background: var(--color-accent-300); }
+.legenda i.aberta { background: var(--color-accent-400); }
 
 /* — Barra de proporção (ocupação da carteira) — */
 .mini-bar {
