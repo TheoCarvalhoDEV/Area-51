@@ -126,11 +126,11 @@ const PropertiesView = {
     document.getElementById('prop-detalhe-corpo').innerHTML = this.detalhe(id);
     document.getElementById('prop-detalhe-editar').setAttribute('onclick',
       `PropertiesView.fecharDetalhe(); PropertiesView.openModal('${Utils.esc(id)}')`);
-    document.getElementById('prop-detalhe').style.display = 'flex';
+    Utils.abrirModal('prop-detalhe');
   },
 
   fecharDetalhe() {
-    document.getElementById('prop-detalhe').style.display = 'none';
+    Utils.fecharModal('prop-detalhe');
   },
 
   render(container) {
@@ -255,7 +255,7 @@ const PropertiesView = {
           <h3 id="prop-detalhe-titulo">Imóvel</h3>
           <div id="prop-detalhe-corpo"></div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="PropertiesView.fecharDetalhe()">Fechar</button>
+            <button type="button" class="btn btn-secondary" data-fechar onclick="PropertiesView.fecharDetalhe()">Fechar</button>
             <button type="button" class="btn btn-primary" id="prop-detalhe-editar">Editar</button>
           </div>
         </div>
@@ -341,7 +341,7 @@ const PropertiesView = {
             </div>
 
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" onclick="PropertiesView.closeModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary" data-fechar onclick="PropertiesView.closeModal()">Cancelar</button>
               <button type="submit" class="btn btn-primary">Salvar Imóvel</button>
             </div>
           </form>
@@ -358,7 +358,7 @@ const PropertiesView = {
   openModal(id = null) {
     const modal = document.getElementById('prop-modal');
     const title = document.getElementById('prop-modal-title');
-    modal.style.display = 'flex';
+    Utils.abrirModal('prop-modal');
 
     if (id) {
       const prop = Storage.getProperties().find(p => p.id === id);
@@ -387,7 +387,7 @@ const PropertiesView = {
   },
 
   closeModal() {
-    document.getElementById('prop-modal').style.display = 'none';
+    Utils.fecharModal('prop-modal');
   },
 
   saveProp(e) {

@@ -132,7 +132,7 @@ const Vistorias = {
                 value="${Utils.esc(new Date().toISOString().slice(0, 10))}">
             </div>
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" onclick="Vistorias.fecharModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary" data-fechar onclick="Vistorias.fecharModal()">Cancelar</button>
               <button type="submit" class="btn btn-primary">Criar vistoria</button>
             </div>
           </form>
@@ -280,7 +280,7 @@ const Vistorias = {
               onchange="Vistorias.guardar(this.files[0])">
             <button type="button" class="btn btn-secondary"
               onclick="document.getElementById('captura-arquivo').click()">Escolher arquivo</button>
-            <button type="button" class="btn btn-secondary" onclick="Vistorias.fecharCaptura()">Cancelar</button>
+            <button type="button" class="btn btn-secondary" data-fechar onclick="Vistorias.fecharCaptura()">Cancelar</button>
             <button type="button" class="btn btn-primary" id="captura-acao" onclick="Vistorias.capturar()">Capturar</button>
           </div>
         </div>
@@ -294,11 +294,11 @@ const Vistorias = {
       Utils.toast('Cadastre um imóvel antes da primeira vistoria.', 'error');
       return;
     }
-    document.getElementById('vistoria-modal').style.display = 'flex';
+    Utils.abrirModal('vistoria-modal');
   },
 
   fecharModal() {
-    document.getElementById('vistoria-modal').style.display = 'none';
+    Utils.fecharModal('vistoria-modal');
   },
 
   criarDoForm(e) {
@@ -424,7 +424,7 @@ const Vistorias = {
     const acao = document.getElementById('captura-acao');
     if (acao) acao.textContent = tipo === 'foto' ? 'Capturar' : 'Gravar';
 
-    document.getElementById('captura-modal').style.display = 'flex';
+    Utils.abrirModal('captura-modal');
     Midias.abrirCamera(document.getElementById('captura-video'), tipo === 'video');
   },
 
@@ -432,8 +432,7 @@ const Vistorias = {
     Midias.pararGravacao();
     Midias.fecharCamera();
     this.captura = null;
-    const modal = document.getElementById('captura-modal');
-    if (modal) modal.style.display = 'none';
+    Utils.fecharModal('captura-modal');
   },
 
   // Foto sai num quadro; vídeo alterna gravar/parar no mesmo botão.

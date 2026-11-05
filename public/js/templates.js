@@ -72,11 +72,11 @@ const Templates = {
     document.getElementById('modelo-detalhe-titulo').textContent = t.title || 'Modelo';
     document.getElementById('modelo-detalhe-corpo').innerHTML = this.detalhe(id);
     document.getElementById('modelo-detalhe-usar').setAttribute('href', '#editor?template=' + encodeURIComponent(id));
-    document.getElementById('modelo-detalhe').style.display = 'flex';
+    Utils.abrirModal('modelo-detalhe');
   },
 
   fecharDetalhe() {
-    document.getElementById('modelo-detalhe').style.display = 'none';
+    Utils.fecharModal('modelo-detalhe');
   },
 
   render(container) {
@@ -137,7 +137,7 @@ const Templates = {
           <h3 id="modelo-detalhe-titulo">Modelo</h3>
           <div id="modelo-detalhe-corpo"></div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="Templates.fecharDetalhe()">Fechar</button>
+            <button type="button" class="btn btn-secondary" data-fechar onclick="Templates.fecharDetalhe()">Fechar</button>
             <a class="btn btn-primary" id="modelo-detalhe-usar" href="#templates">Usar este modelo</a>
           </div>
         </div>

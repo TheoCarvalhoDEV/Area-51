@@ -1509,3 +1509,19 @@ button.nav-item {
   .duas-colunas { grid-template-columns: 1fr; }
   .lista-valor { min-width: 0; }
 }
+
+/* Link "Pular para o conteúdo": fora da tela até receber foco pelo Tab */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 10000;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--color-neutral-100);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+#main-content:focus { outline: none; } /* alvo do skip-link, não controle */

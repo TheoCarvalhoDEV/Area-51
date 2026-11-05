@@ -52,6 +52,23 @@ const App = {
 
     window.addEventListener('hashchange', () => this.handleRoute());
 
+    // Esc fecha o modal do topo pelo próprio botão Fechar/Cancelar dele
+    // ([data-fechar]), que já sabe desligar câmera e limpar estado.
+    document.addEventListener('keydown', (e) => {
+      // div/span com role="button" (cabeçalhos que recolhem, cartões PF/PJ…)
+      // respondem a Enter e Espaço como um <button> de verdade
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"]:not(button)')) {
+        e.preventDefault();
+        e.target.click();
+        return;
+      }
+      if (e.key !== 'Escape') return;
+      const aberto = [...document.querySelectorAll('.modal-backdrop')].reverse()
+        .find(m => m.style.display === 'flex');
+      const fechar = aberto && aberto.querySelector('[data-fechar]');
+      if (fechar) fechar.click();
+    });
+
     // Pergunta ao servidor quem esta logado. Ate a resposta chegar, o Api
     // considera ninguem — fail-closed: o painel nao abre sem saber de quem e.
     Api.carregarSessao();

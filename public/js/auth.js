@@ -41,7 +41,7 @@ const AuthUI = {
         <span>SENHA</span>
         <div class="auth-pw-wrap">
           <input type="password" id="${id}" class="auth-input" ${attrs}>
-          <span class="auth-pw-toggle" onclick="AuthUI.togglePw(this)">${this.eyeIcon}</span>
+          <span class="auth-pw-toggle" role="button" tabindex="0" aria-label="Mostrar senha" aria-pressed="false" onclick="AuthUI.togglePw(this)">${this.eyeIcon}</span>
         </div>
         ${hint}
       </label>`;
@@ -78,11 +78,11 @@ const AuthUI = {
               <h2 class="auth-h2">Criar nova conta</h2>
               <p class="auth-sub">Primeiro, informe o tipo de locador.</p>
               <div class="auth-type-grid">
-                <div class="auth-type-card selected" id="type-card-pf" onclick="AuthUI.selectType('pf')">
+                <div class="auth-type-card selected" id="type-card-pf" role="button" tabindex="0" aria-pressed="true" onclick="AuthUI.selectType('pf')">
                   <div class="tt">Pessoa Física</div>
                   <div class="st">CPF</div>
                 </div>
-                <div class="auth-type-card" id="type-card-pj" onclick="AuthUI.selectType('pj')">
+                <div class="auth-type-card" id="type-card-pj" role="button" tabindex="0" aria-pressed="false" onclick="AuthUI.selectType('pj')">
                   <div class="tt">Pessoa Jurídica</div>
                   <div class="st">CNPJ</div>
                 </div>
@@ -95,7 +95,7 @@ const AuthUI = {
 
             <!-- rodapé de troca de modo (persistente) -->
             <div class="auth-divider"><span class="line"></span><span class="or">ou</span><span class="line"></span></div>
-            <div class="auth-switch" onclick="AuthUI.toggleModo()">
+            <div class="auth-switch" role="button" tabindex="0" onclick="AuthUI.toggleModo()">
               <span id="auth-switch-q">Não tem uma conta?</span> <b id="auth-switch-a">Cadastre-se</b>
             </div>
           </div>
@@ -235,9 +235,11 @@ const AuthUI = {
     if (input.type === 'password') {
       input.type = 'text';
       el.innerHTML = this.eyeOffIcon;
+      el.setAttribute('aria-pressed', 'true');
     } else {
       input.type = 'password';
       el.innerHTML = this.eyeIcon;
+      el.setAttribute('aria-pressed', 'false');
     }
   },
 
@@ -245,8 +247,8 @@ const AuthUI = {
     this.registerType = type;
     const pf = document.getElementById('type-card-pf');
     const pj = document.getElementById('type-card-pj');
-    if (pf) pf.classList.toggle('selected', type === 'pf');
-    if (pj) pj.classList.toggle('selected', type === 'pj');
+    if (pf) { pf.classList.toggle('selected', type === 'pf'); pf.setAttribute('aria-pressed', type === 'pf'); }
+    if (pj) { pj.classList.toggle('selected', type === 'pj'); pj.setAttribute('aria-pressed', type === 'pj'); }
   },
 
   goToDados() {

@@ -96,6 +96,10 @@
 </head>
 
 <body>
+  <!-- Teclado: pula as 13 paradas da barra lateral. Foca o <main> em vez de
+       navegar para #main-content, que o roteador leria como rota. -->
+  <a class="skip-link" href="#main-content"
+    onclick="event.preventDefault(); document.getElementById('main-content').focus()">Pular para o conteúdo</a>
 
   <!-- Mobile Header -->
   <header class="mobile-header">
@@ -240,7 +244,7 @@
       </header>
 
       <!-- Main Content -->
-      <main id="main-content">
+      <main id="main-content" tabindex="-1">
         <!-- O conteúdo será injetado aqui via JS -->
       </main>
     </div>

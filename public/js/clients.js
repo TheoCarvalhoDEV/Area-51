@@ -61,11 +61,11 @@ const ClientsView = {
     document.getElementById('client-detalhe-corpo').innerHTML = this.detalhe(id);
     document.getElementById('client-detalhe-editar').setAttribute('onclick',
       `ClientsView.fecharDetalhe(); ClientsView.openModal('${Utils.esc(id)}')`);
-    document.getElementById('client-detalhe').style.display = 'flex';
+    Utils.abrirModal('client-detalhe');
   },
 
   fecharDetalhe() {
-    document.getElementById('client-detalhe').style.display = 'none';
+    Utils.fecharModal('client-detalhe');
   },
 
   render(container) {
@@ -161,7 +161,7 @@ const ClientsView = {
           <h3 id="client-detalhe-titulo">Cliente</h3>
           <div id="client-detalhe-corpo"></div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="ClientsView.fecharDetalhe()">Fechar</button>
+            <button type="button" class="btn btn-secondary" data-fechar onclick="ClientsView.fecharDetalhe()">Fechar</button>
             <button type="button" class="btn btn-primary" id="client-detalhe-editar">Editar</button>
           </div>
         </div>
@@ -236,7 +236,7 @@ const ClientsView = {
             </div>
 
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" onclick="ClientsView.closeModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary" data-fechar onclick="ClientsView.closeModal()">Cancelar</button>
               <button type="submit" class="btn btn-primary">Salvar Cliente</button>
             </div>
           </form>
@@ -265,7 +265,7 @@ const ClientsView = {
   openModal(id = null) {
     const modal = document.getElementById('client-modal');
     const title = document.getElementById('client-modal-title');
-    modal.style.display = 'flex';
+    Utils.abrirModal('client-modal');
 
     if (id) {
       const client = Storage.getClients().find(c => c.id === id);
@@ -294,7 +294,7 @@ const ClientsView = {
   },
 
   closeModal() {
-    document.getElementById('client-modal').style.display = 'none';
+    Utils.fecharModal('client-modal');
   },
 
   saveClient(e) {

@@ -307,12 +307,46 @@ const Utils = {
     return saida;
   },
 
+  // ── Modais (.modal-backdrop) ──
+  // Abrir/fechar passa por aqui para todo modal ter: papel de diálogo com nome
+  // (o primeiro título do cartão), foco no primeiro campo e o foco de volta em
+  // quem abriu. O Esc é um ouvinte só (App.init) que clica no [data-fechar] do
+  // modal do topo — assim ele faz a mesma limpeza do botão (câmera, estado).
+  // ponytail: sem prender o Tab dentro do modal; vira <dialog> se precisar.
+  abrirModal(id) {
+    const modal = document.getElementById(id);
+    const card = modal.querySelector('.modal-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    const titulo = card.querySelector('h1, h2, h3, h4');
+    if (titulo) {
+      titulo.id = titulo.id || id + '-titulo';
+      card.setAttribute('aria-labelledby', titulo.id);
+    }
+    modal._voltaFoco = document.activeElement;
+    modal.style.display = 'flex';
+    const alvo = card.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button');
+    if (alvo) alvo.focus();
+  },
+
+  fecharModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.style.display = 'none';
+    const volta = modal._voltaFoco;
+    modal._voltaFoco = null;
+    if (volta && volta.isConnected) volta.focus();
+  },
+
   // ── Toast (feedback não-bloqueante, substitui alert) ──
   toast(msg, type = 'success') {
     let box = document.getElementById('toast-box');
     if (!box) {
       box = document.createElement('div');
       box.id = 'toast-box';
+      // leitor de tela anuncia cada aviso novo sem roubar o foco
+      box.setAttribute('role', 'status');
+      box.setAttribute('aria-live', 'polite');
       document.body.appendChild(box);
     }
     const el = document.createElement('div');

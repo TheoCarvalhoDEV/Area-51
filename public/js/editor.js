@@ -226,7 +226,7 @@ const Editor = {
       
       html += `
         <div class="form-section" style="${isHidden ? 'display: none;' : ''}">
-          <div class="form-section-header" onclick="this.classList.toggle('collapsed')">
+          <div class="form-section-header" role="button" tabindex="0" aria-expanded="true" onclick="this.setAttribute('aria-expanded', !this.classList.toggle('collapsed'))">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             <h3>${secName}</h3>
           </div>
@@ -276,7 +276,7 @@ const Editor = {
         </label>`;
       html += `
         <div class="form-section">
-          <div class="form-section-header" onclick="this.classList.toggle('collapsed')">
+          <div class="form-section-header" role="button" tabindex="0" aria-expanded="true" onclick="this.setAttribute('aria-expanded', !this.classList.toggle('collapsed'))">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             <h3>Validação do Inquilino</h3>
           </div>
@@ -293,7 +293,7 @@ const Editor = {
     // depois do inquilino) — diferente da validação acima, que é exigência dele.
     html += `
       <div class="form-section">
-        <div class="form-section-header" onclick="this.classList.toggle('collapsed')">
+        <div class="form-section-header" role="button" tabindex="0" aria-expanded="true" onclick="this.setAttribute('aria-expanded', !this.classList.toggle('collapsed'))">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           <h3>Assinatura do Locador</h3>
         </div>
