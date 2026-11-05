@@ -338,6 +338,31 @@ const Utils = {
     if (volta && volta.isConnected) volta.focus();
   },
 
+  // ── Erro no próprio campo ──
+  // Mensagem logo abaixo do campo, ligada por aria-describedby, e
+  // aria-invalid para o leitor de tela. Quem chama decide o foco.
+  marcarErro(el, msg) {
+    if (!el) return;
+    let p = el.parentElement.querySelector('.form-erro');
+    if (!p) {
+      p = document.createElement('p');
+      p.className = 'form-erro';
+      p.id = (el.id || 'campo') + '-erro';
+      el.after(p);
+    }
+    p.textContent = msg;
+    el.setAttribute('aria-invalid', 'true');
+    el.setAttribute('aria-describedby', p.id);
+  },
+
+  limparErro(el) {
+    if (!el || !el.hasAttribute('aria-invalid')) return;
+    el.removeAttribute('aria-invalid');
+    el.removeAttribute('aria-describedby');
+    const p = el.parentElement.querySelector('.form-erro');
+    if (p) p.remove();
+  },
+
   // ── Toast (feedback não-bloqueante, substitui alert) ──
   toast(msg, type = 'success') {
     let box = document.getElementById('toast-box');

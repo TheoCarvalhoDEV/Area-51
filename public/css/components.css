@@ -1525,3 +1525,15 @@ button.nav-item {
 }
 .skip-link:focus { transform: none; }
 #main-content:focus { outline: none; } /* alvo do skip-link, não controle */
+
+/* Erro no próprio campo (Utils.marcarErro) */
+.form-erro {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+}
+.form-input[aria-invalid="true"],
+.form-textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}

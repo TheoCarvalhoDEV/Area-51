@@ -366,6 +366,7 @@ const Editor = {
       el.addEventListener('input', () => {
         const fieldName = el.getAttribute('data-field');
         this.contract.fields[fieldName] = el.value;
+        Utils.limparErro(el); // começou a corrigir: a mensagem sai
         
         // Auto-preencher valor por extenso se for campo monetário
         if (fieldName === 'valor_aluguel' || fieldName === 'valor_bonus' || fieldName === 'valor_caucao') {
@@ -503,6 +504,25 @@ const Editor = {
     // valor jurídico se os termos essenciais já estiverem no documento que ele vai ler.
     const faltando = Utils.faltamParaOLink(this.contract.fields, this.template);
     if (faltando.length) {
+      // Marca cada campo que falta (abrindo a seção, se recolhida) e foca o
+      // primeiro. O mapa segue os rótulos de Utils.faltamParaOLink; rótulo sem
+      // par aqui só deixa de ser marcado — o toast continua listando tudo.
+      const CAMPO = {
+        'Valor do aluguel': 'valor_aluguel',
+        'Endereço do imóvel': 'end_imovel',
+        'Data de início': 'data_inicio',
+        'Prazo do contrato': 'prazo_extenso',
+        'Dia de vencimento': 'dia_vencimento'
+      };
+      const els = faltando
+        .map(rotulo => document.getElementById('campo-' + CAMPO[rotulo]))
+        .filter(Boolean);
+      els.forEach(el => {
+        Utils.marcarErro(el, 'Obrigatório para gerar o link do inquilino.');
+        const cab = el.closest('.form-section').querySelector('.form-section-header');
+        if (cab && cab.classList.contains('collapsed')) cab.click();
+      });
+      if (els[0]) els[0].focus();
       Utils.toast('Antes de enviar ao inquilino, preencha: ' + faltando.join(', ') + '.', 'error');
       return;
     }

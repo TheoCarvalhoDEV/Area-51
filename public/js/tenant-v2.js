@@ -529,6 +529,7 @@ const Tenant = {
       el.addEventListener('input', async () => {
         const fieldName = el.getAttribute('data-field');
         this.contract.fields[fieldName] = el.value;
+        Utils.limparErro(el); // começou a corrigir: a mensagem sai
 
         if (fieldName && fieldName.includes('cep')) {
           const targetField = fieldName.includes('locatario') ? 'end_locatario' : 'end_imovel';
@@ -560,38 +561,36 @@ const Tenant = {
   finish() {
     // Nome e documento são o mínimo para o contrato valer alguma coisa —
     // sem eles não há parte identificada, então o envio é bloqueado (não é opcional).
-    const marcar = (el, ruim) => { if (el) el.style.borderColor = ruim ? 'red' : ''; };
+    // Erro aparece embaixo do campo e o foco vai até ele — um toast no topo
+    // ficava longe do campo, e no celular o campo nem estava na tela.
+    const erro = (el, msg) => { Utils.marcarErro(el, msg); el.focus(); };
     const nomeEl = document.querySelector('#tenant-form-container [data-field="nome_locatario"]');
     if (nomeEl && !nomeEl.value.trim()) {
-      marcar(nomeEl, true);
-      Utils.toast('Informe seu nome completo para enviar o contrato.', 'error');
+      erro(nomeEl, 'Informe seu nome completo para enviar o contrato.');
       return;
     }
-    marcar(nomeEl, false);
+    Utils.limparErro(nomeEl);
 
     // Validação de CPF/CNPJ (checksum, não só formato)
-    let isValid = true;
-    let errorMsg = '';
+    let primeiroInvalido = null;
 
-    document.querySelectorAll('input[data-mask="cpfcnpj"]').forEach(el => {
+    document.querySelectorAll('#tenant-form-container input[data-mask="cpfcnpj"]').forEach(el => {
       // docLimpo e não \D: o CNPJ alfanumérico tem letras.
       const val = Utils.docLimpo(el.value);
       const cnpj = Utils.ehCNPJ(val);
-      if (!val) {
-        isValid = false;
-        errorMsg = 'Informe seu CPF para enviar o contrato.';
-        marcar(el, true);
-      } else if (cnpj ? !Utils.isValidCNPJ(val) : !Utils.isValidCPF(val)) {
-        isValid = false;
-        errorMsg = 'O ' + (cnpj ? 'CNPJ' : 'CPF') + ' informado (' + el.value + ') é inválido. Por favor, corrija.';
-        marcar(el, true);
+      let msg = '';
+      if (!val) msg = 'Informe seu CPF para enviar o contrato.';
+      else if (cnpj ? !Utils.isValidCNPJ(val) : !Utils.isValidCPF(val)) msg = (cnpj ? 'CNPJ' : 'CPF') + ' inválido. Confira os números.';
+      if (msg) {
+        Utils.marcarErro(el, msg);
+        primeiroInvalido = primeiroInvalido || el;
       } else {
-        marcar(el, false);
+        Utils.limparErro(el);
       }
     });
 
-    if (!isValid) {
-      Utils.toast(errorMsg, 'error');
+    if (primeiroInvalido) {
+      primeiroInvalido.focus();
       return;
     }
 
