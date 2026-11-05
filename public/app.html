@@ -33,9 +33,14 @@
     // Aplica o tema ANTES da pintura para nao piscar branco ao carregar.
     // Preferencia salva vence; sem ela, segue o tema do sistema operacional.
     (function () {
+      // A tela do inquilino é sempre clara: o contrato é um documento em papel
+      // branco, e quem abre o link não tem o alternador de tema.
+      // ponytail: só no carregamento — quem cola um link #tenant numa aba já
+      // aberta do painel escuro o vê escuro. Basta abrir em aba nova.
+      var inquilino = (location.hash || '').indexOf('#tenant') === 0;
       try {
         var t = localStorage.getItem('theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        if (!inquilino && (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches))) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
       } catch (e) { /* localStorage bloqueado: segue no tema claro */ }
@@ -43,7 +48,7 @@
       // Link do inquilino (#tenant): esconde a interface do locador ANTES da
       // primeira pintura. Sem isto a sidebar/menu do app piscam enquanto o JS
       // carrega e troca para a tela do inquilino.
-      if ((location.hash || '').indexOf('#tenant') === 0) {
+      if (inquilino) {
         document.documentElement.classList.add('is-tenant-boot');
       }
     })();
