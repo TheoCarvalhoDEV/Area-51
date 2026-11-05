@@ -72,6 +72,76 @@
   stroke-width: 2.5px;
 }
 
+/* "Mais" e um <button>: zera o estilo nativo para ficar igual as abas-link */
+button.bottom-nav-link {
+  width: 100%;
+  background: none;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Folha "Mais": <dialog> ancorado no rodape, como bottom sheet */
+.mais-sheet {
+  margin: auto 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 80dvh;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg, 24px) var(--radius-lg, 24px) 0 0;
+  background: var(--card-bg, #fff);
+  color: var(--text-main);
+  box-shadow: var(--shadow-lg);
+}
+
+.mais-sheet::backdrop {
+  background: rgba(20, 24, 31, 0.45);
+}
+
+.mais-sheet-panel {
+  padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+}
+
+.mais-sheet-handle {
+  width: 40px;
+  height: 4px;
+  margin: 4px auto 12px;
+  border-radius: 2px;
+  background: var(--border-light, rgba(0, 0, 0, 0.15));
+}
+
+/* .nav-item vem com as cores da sidebar escura; aqui o fundo e claro */
+.mais-sheet .nav-item {
+  min-height: 48px;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.mais-sheet .nav-item svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* anula o :hover da sidebar (texto quase branco). O realce so vale com mouse:
+   no toque ele grudaria no item que nasce sob o dedo que tocou em "Mais". */
+.mais-sheet .nav-item:hover {
+  background: none;
+  color: var(--text-main);
+}
+
+@media (hover: hover) {
+  .mais-sheet .nav-item:hover {
+    background: var(--primary-light);
+  }
+}
+
+.mais-sheet .nav-item.active,
+.mais-sheet .nav-item.active svg {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
 /* Na impressao ela nao pode aparecer: e position:fixed, entao o navegador
    a repete em TODAS as paginas do PDF. */
 @media print {
