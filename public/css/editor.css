@@ -309,14 +309,19 @@
     max-width: none;
     font-size: 16px;
   }
-  /* No celular os botoes empilham: em linha eles estouravam a tela */
+  /* No celular: "Gerar link" na largura toda, e os demais (Salvar, PDF,
+     Excluir) dividem a linha de baixo. Empilhados, os quatro ocupavam ~200px
+     antes do conteúdo. */
   .editor-toolbar-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-wrap: wrap;
   }
   .editor-toolbar-actions .btn {
-    width: 100%;
+    flex: 1 1 0;
     justify-content: center;
+  }
+  .editor-toolbar-actions .editor-acao-principal {
+    flex-basis: 100%;
+    order: -1;
   }
   .preview-document {
     padding: 1.5rem;
