@@ -105,7 +105,7 @@ const ClientsView = {
       ` : `
         <div class="card animate-fade-in-up" style="padding: 22px 26px;">
           <div class="data-table-wrap">
-            <table class="data-table">
+            <table class="data-table data-table-cards">
               <thead>
                 <tr>
                   <th>Nome</th>
@@ -130,13 +130,15 @@ const ClientsView = {
                         </span>
                       </div>
                     </td>
-                    <td>${this.badgeTipo(c.client_type)}</td>
-                    <td>${Utils.esc(c.document ? Utils.maskCPFCNPJ(c.document) : '—')}</td>
-                    <td>
-                      ${Utils.esc(c.phone || '—')}
-                      <span class="td-sub">${Utils.esc(c.email || '—')}</span>
+                    <td data-label="Papel">${this.badgeTipo(c.client_type)}</td>
+                    <td data-label="Documento">${Utils.esc(c.document ? Utils.maskCPFCNPJ(c.document) : '—')}</td>
+                    <td data-label="Contato">
+                      <span>
+                        ${Utils.esc(c.phone || '—')}
+                        <span class="td-sub">${Utils.esc(c.email || '—')}</span>
+                      </span>
                     </td>
-                    <td>${n ? `${n} contrato${n === 1 ? '' : 's'}` : '<span class="text-muted">—</span>'}</td>
+                    <td data-label="Contratos">${n ? `${n} contrato${n === 1 ? '' : 's'}` : '<span class="text-muted">—</span>'}</td>
                     <td class="td-acoes">
                       <button class="btn btn-primary btn-sm" onclick="ClientsView.verDetalhe('${Utils.esc(c.id)}')">Ver</button>
                       <button class="btn btn-secondary btn-sm" onclick="ClientsView.openModal('${Utils.esc(c.id)}')">Editar</button>
