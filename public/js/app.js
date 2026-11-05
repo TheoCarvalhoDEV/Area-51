@@ -44,6 +44,10 @@ const App = {
       this._lastUid = newUid;
 
       if (user) {
+        // Até as listas chegarem o conteúdo ficava em branco ao lado da barra
+        // lateral; em rede lenta parecia travado. Quatro cartões cinza seguram
+        // o lugar até a primeira tela.
+        this.container.innerHTML = `<div class="metric-grid" aria-busy="true" aria-label="Carregando">${'<div class="card esqueleto"></div>'.repeat(4)}</div>`;
         Storage.loadCloudData().then(() => this.handleRoute());
       } else {
         this.handleRoute();

@@ -1553,3 +1553,15 @@ button.nav-item {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* Esqueleto da carga inicial (App.init) */
+.esqueleto {
+  min-height: 118px;
+  background: var(--seg-bg);
+  border-color: transparent;
+  animation: esqueleto-pulsa 1.1s ease-in-out infinite alternate;
+}
+@keyframes esqueleto-pulsa { to { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto { animation: none; }
+}
