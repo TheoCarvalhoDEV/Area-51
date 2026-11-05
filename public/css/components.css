@@ -999,6 +999,74 @@ button.nav-item {
   font-size: 0.8rem;
 }
 
+/* .data-table-cards: no celular cada linha vira um cartão. As células dizem o
+   que são por data-label; a primeira (sem rótulo) é o título do cartão. */
+@media (max-width: 640px) {
+  .data-table-wrap:has(.data-table-cards) {
+    overflow: visible;
+    background: none;
+    border: 0;
+  }
+  .data-table-cards thead { display: none; }
+  .data-table-cards,
+  .data-table-cards tbody { display: block; }
+  .data-table-cards tr {
+    display: block;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+  .data-table-cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border: 0;
+    text-align: right;
+  }
+  .data-table-cards td:first-child {
+    font-size: 1rem;
+    text-align: left;
+    padding-top: 0;
+  }
+  .data-table-cards td[data-label]::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: left;
+  }
+  .data-table-cards .td-acoes {
+    gap: 8px;
+    padding-top: 12px;
+    white-space: normal;
+  }
+  .data-table-cards .td-acoes .btn { flex: 1; }
+}
+
+/* Alvos de toque de 44px no celular (WCAG 2.5.5). No desktop ficam compactos. */
+@media (max-width: 768px) {
+  .btn-sm,
+  .btn-icon,
+  .filtro-pill,
+  .seg-tab,
+  .data-table .td-acoes .btn {
+    min-height: 44px;
+  }
+  .btn-icon { min-width: 44px; }
+
+  /* a régua de meses não cabe em 390px: rola na horizontal em vez de vazar */
+  .seg-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .seg-tab { flex-shrink: 0; }
+}
+
 /* ═══ Alternador de tema (sidebar) ═══ */
 .theme-icon-sun {
   display: none;
@@ -1331,7 +1399,7 @@ button.nav-item {
   min-height: 4px;
 }
 
-.barra.aberta { background: var(--color-accent-300); }
+.barra.aberta { background: var(--color-accent-400); }
 
 .barra-mes {
   font-size: 11px;
@@ -1362,7 +1430,7 @@ button.nav-item {
   background: var(--color-accent-2-500);
 }
 
-.legenda i.aberta { background: var(--color-accent-300); }
+.legenda i.aberta { background: var(--color-accent-400); }
 
 /* — Barra de proporção (ocupação da carteira) — */
 .mini-bar {

@@ -183,6 +183,10 @@ const App = {
       }
     });
 
+    // "Mais" acende quando a rota ativa mora na folha (Financeiro, Perfil…)
+    const mais = document.getElementById('nav-mais');
+    if (mais) mais.classList.toggle('active', !!document.querySelector('#mais-sheet .nav-item.active'));
+
     // A barra de conteúdo só existe para as rotas que têm lista para filtrar.
     // Em editor/perfil/inquilino ela sairia como um campo de busca que não
     // busca nada — é esse tipo de controle inerte que faz um app parecer

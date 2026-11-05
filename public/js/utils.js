@@ -640,6 +640,11 @@ const Utils = {
   getGPS() {
     return new Promise(resolve => {
       if (!navigator.geolocation) return resolve(null);
+      // O timeout do getCurrentPosition só conta DEPOIS da permissão: aviso de
+      // localização ignorado (sumiu, trocou de app) deixava o envio do inquilino
+      // pendurado para sempre. Este teto vale desde o pedido; resolve duas vezes
+      // é inofensivo (a primeira vence).
+      setTimeout(() => resolve(null), 10000);
       navigator.geolocation.getCurrentPosition(
         pos => {
           resolve({

@@ -64,14 +64,14 @@
 
   --text-main: #14181f;
   --text-muted: var(--color-neutral-700);
-  --text-light: var(--color-neutral-600);
+  --text-light: #5f6978; /* neutral-600 dava 4,2:1 no branco; este dá 5,6:1 (AA) */
 
   --border-light: var(--color-neutral-300);
   --border-focus: var(--color-neutral-400);
   --divider: color-mix(in srgb, var(--text-main) 12%, transparent);
 
   --input-bg: var(--color-neutral-100);
-  --input-border: var(--color-neutral-300);
+  --input-border: var(--color-neutral-400); /* neutral-300 sumia no fundo claro */
   --seg-bg: var(--color-neutral-200);
   --icon-hover-bg: rgba(20, 24, 31, 0.06);
   /* hover: no tema claro escurecemos; no escuro clareamos (ver bloco dark) */

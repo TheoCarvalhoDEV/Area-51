@@ -159,15 +159,44 @@ body.tenant-mode #main-content > * {
 }
 .tenant-doc-label svg { width: 16px; height: 16px; }
 
+/* "Recolher" à direita do rótulo, com alvo de toque de 44px */
+.tenant-doc-toggle {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: 0;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Altura natural: rola com a página, sem uma segunda barra de rolagem
+   dentro dela (no celular, rolar dentro de caixa prendia o dedo). */
 .tenant-doc {
   margin-top: 12px;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   background: var(--card-bg);
-  max-height: 420px;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(22, 24, 29, 0.04));
 }
+
+.tenant-doc.recolhido {
+  max-height: 180px;
+  -webkit-mask-image: linear-gradient(#000 55%, transparent);
+  mask-image: linear-gradient(#000 55%, transparent);
+}
+
+.tenant-aceite-dica {
+  margin: 22px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--warning);
+}
+.tenant-aceite-dica + .tenant-check-input + .tenant-accept { margin-top: 8px; }
 
 /* Escopado em .tenant-mode: o editor do locador usa as MESMAS classes
    (.preview-document / .highlight) e nao pode herdar estes estilos. */
@@ -284,6 +313,11 @@ body.tenant-mode .preview-document .highlight.filled {
   background: var(--primary) url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='20 6 9 17 4 12'%3e%3c/polyline%3e%3c/svg%3e") center / 14px no-repeat;
 }
 
+.tenant-check-input:disabled + .tenant-accept {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .tenant-check-input:focus-visible + .tenant-accept {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -340,6 +374,12 @@ body.tenant-mode .preview-document .highlight.filled {
   max-width: 440px;
 }
 
+.tenant-state .tenant-link {
+  margin-top: 24px;
+  font-size: 13px;
+  text-align: center;
+}
+
 .tenant-state .btn { margin-top: 28px; width: 100%; justify-content: center; padding: 15px; }
 .tenant-state .btn + .btn { margin-top: 12px; }
 
@@ -392,6 +432,9 @@ body.tenant-mode .preview-document .highlight.filled {
     max-width: none !important;
     max-height: none !important;
     overflow: visible !important;
+    /* "Recolher" na tela não pode desbotar o fim do contrato no PDF */
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
     border: none !important;
     box-shadow: none !important;
   }

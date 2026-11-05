@@ -102,7 +102,9 @@ const AuthUI = {
         </div>
       </div>
     `;
-    this.view = 'login';
+    // Os CTAs "Começar grátis" da landing chegam com #cadastro: abrem direto
+    // na escolha do tipo de locador, sem passar pelo login.
+    this.showView(location.hash === '#cadastro' ? 'type' : 'login');
     this._initWater();
   },
 

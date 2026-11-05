@@ -76,7 +76,7 @@
 .auth-grid .full { grid-column: 1 / -1; }
 
 .auth-label { display: flex; flex-direction: column; gap: 6px; }
-.auth-label > span { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #8A92A0; }
+.auth-label > span { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #5C6470; /* #8A92A0 dava 3,1:1; este dá 5,6:1 (AA) */ }
 .auth-input, .auth-select {
   width: 100%; border: 1px solid #DDE3EC; border-radius: 10px; padding: 13px 14px;
   font-size: 14.5px; color: #16181D; background: #FFFFFF; font-family: inherit;

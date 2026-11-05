@@ -111,7 +111,7 @@ const Financeiro = {
 
         ${regs.length ? `
           <div class="data-table-wrap">
-            <table class="data-table">
+            <table class="data-table data-table-cards">
               <thead>
                 <tr>
                   <th>Inquilino</th>
@@ -129,10 +129,10 @@ const Financeiro = {
                   return `
                   <tr data-busca>
                     <td style="font-weight:600;">${Utils.esc(r.tenant_name || 'Inquilino')}</td>
-                    <td class="text-muted">${Utils.esc(r.description || '—')}</td>
-                    <td>${Utils.esc(Utils.formatDate(r.due_date))}</td>
-                    <td style="font-weight:600;">${Utils.esc(Utils.formatCurrency(r.rent_value))}</td>
-                    <td><span class="badge ${s.classe}">${Utils.esc(s.label)}</span></td>
+                    <td class="text-muted" data-label="Contrato">${Utils.esc(r.description || '—')}</td>
+                    <td data-label="Vencimento">${Utils.esc(Utils.formatDate(r.due_date))}</td>
+                    <td data-label="Valor" style="font-weight:600;">${Utils.esc(Utils.formatCurrency(r.rent_value))}</td>
+                    <td data-label="Situação"><span class="badge ${s.classe}">${Utils.esc(s.label)}</span></td>
                     <td class="td-acoes">
                       <button class="btn btn-${pago ? 'secondary' : 'primary'} btn-sm"
                         onclick="Financeiro.alternarPago('${Utils.esc(r.id)}')">${pago ? 'Reabrir' : 'Marcar pago'}</button>
@@ -161,6 +161,11 @@ const Financeiro = {
         </p>
       </div>
     `;
+
+    // A régua de meses rola na horizontal no celular: o mês ativo (o último,
+    // em geral) nasceria fora da tela.
+    const ativo = container.querySelector('.seg-tab.active');
+    if (ativo) ativo.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   },
 
   alternarPago(id) {
