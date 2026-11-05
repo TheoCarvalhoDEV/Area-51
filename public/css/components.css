@@ -459,6 +459,22 @@ button.nav-item {
   }
 }
 
+/* No celular a busca também existe (as listas crescem sem filtro): fica logo
+   abaixo do cabeçalho fixo de 60px e gruda ali ao rolar. Com ela visível, o
+   <main> não precisa mais da folga do cabeçalho. */
+@media (max-width: 768px) {
+  .content-bar {
+    display: flex;
+    margin-top: 60px;
+    top: 60px;
+    padding: 10px 16px;
+  }
+  .content-bar .content-search { flex: 1; }
+  .content-bar:not([hidden]) + #main-content {
+    padding-top: 1.25rem;
+  }
+}
+
 .content-search {
   display: flex;
   align-items: center;
