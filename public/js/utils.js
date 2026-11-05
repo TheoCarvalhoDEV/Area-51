@@ -325,7 +325,10 @@ const Utils = {
     }
     modal._voltaFoco = document.activeElement;
     modal.style.display = 'flex';
-    const alvo = card.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button');
+    // Sem campo, o foco vai no Fechar — nunca no primeiro botão, que nos
+    // painéis de detalhe é o "Excluir" (um Enter distraído excluiria).
+    const alvo = card.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])')
+      || card.querySelector('[data-fechar]') || card.querySelector('button');
     if (alvo) alvo.focus();
   },
 
@@ -364,7 +367,7 @@ const Utils = {
   },
 
   // ── Toast (feedback não-bloqueante, substitui alert) ──
-  toast(msg, type = 'success') {
+  toast(msg, type = 'success', ms = 4500) {
     let box = document.getElementById('toast-box');
     if (!box) {
       box = document.createElement('div');
@@ -378,8 +381,21 @@ const Utils = {
     el.className = 'toast toast-' + type;
     el.textContent = msg;
     box.appendChild(el);
-    setTimeout(() => el.classList.add('toast-out'), 4500);
-    setTimeout(() => el.remove(), 4900);
+    setTimeout(() => el.classList.add('toast-out'), ms);
+    setTimeout(() => el.remove(), ms + 400);
+    return el;
+  },
+
+  // Toast com botão "Desfazer", que fica na tela enquanto dá para desfazer.
+  toastDesfazer(msg, ms, desfazer) {
+    const el = this.toast(msg, 'success', ms);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-desfazer';
+    btn.textContent = 'Desfazer';
+    btn.onclick = () => { el.remove(); desfazer(); };
+    el.append(' ', btn);
+    return el;
   },
 
   // ── Número por extenso (1..99) ──

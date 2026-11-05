@@ -136,7 +136,7 @@ const Financeiro = {
                     <td class="td-acoes">
                       <button class="btn btn-${pago ? 'secondary' : 'primary'} btn-sm"
                         onclick="Financeiro.alternarPago('${Utils.esc(r.id)}')">${pago ? 'Reabrir' : 'Marcar pago'}</button>
-                      <button class="btn btn-danger btn-sm" onclick="Financeiro.excluir('${Utils.esc(r.id)}')">Excluir</button>
+                      <button class="btn btn-secondary btn-sm" onclick="Financeiro.excluir('${Utils.esc(r.id)}')">Excluir</button>
                     </td>
                   </tr>
                 `;
@@ -185,11 +185,12 @@ const Financeiro = {
   },
 
   excluir(id) {
-    if (!confirm('Excluir este lançamento? A ação não pode ser desfeita.')) return;
-    Storage.deleteFinancialRecord(id);
-    Utils.toast('Lançamento excluído.');
-    this.render(document.getElementById('main-content'));
-    App.reaplicarBusca();
+    Storage.excluirComDesfazer({
+      cache: 'financialRecordsCache', recurso: 'financial_records', id,
+      msgErro: 'O lançamento NÃO foi excluído da nuvem:',
+      aviso: 'Lançamento excluído.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); }
+    });
   },
 
   gerarCobrancas() {

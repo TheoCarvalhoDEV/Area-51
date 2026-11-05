@@ -126,6 +126,8 @@ const PropertiesView = {
     document.getElementById('prop-detalhe-corpo').innerHTML = this.detalhe(id);
     document.getElementById('prop-detalhe-editar').setAttribute('onclick',
       `PropertiesView.fecharDetalhe(); PropertiesView.openModal('${Utils.esc(id)}')`);
+    document.getElementById('prop-detalhe-excluir').setAttribute('onclick',
+      `PropertiesView.deleteProp('${Utils.esc(id)}')`);
     Utils.abrirModal('prop-detalhe');
   },
 
@@ -233,7 +235,6 @@ const PropertiesView = {
                   <div style="display:flex; gap:6px;">
                     <button class="btn btn-primary btn-sm" onclick="PropertiesView.verDetalhe('${Utils.esc(p.id)}')">Ver</button>
                     <button class="btn btn-secondary btn-sm" onclick="PropertiesView.openModal('${Utils.esc(p.id)}')">Editar</button>
-                    <button class="btn btn-danger btn-sm" onclick="PropertiesView.deleteProp('${Utils.esc(p.id)}')">Excluir</button>
                   </div>
                 </div>
               </div>
@@ -255,6 +256,7 @@ const PropertiesView = {
           <h3 id="prop-detalhe-titulo">Imóvel</h3>
           <div id="prop-detalhe-corpo"></div>
           <div class="modal-actions">
+            <button type="button" class="btn btn-danger" id="prop-detalhe-excluir" style="margin-right:auto;">Excluir</button>
             <button type="button" class="btn btn-secondary" data-fechar onclick="PropertiesView.fecharDetalhe()">Fechar</button>
             <button type="button" class="btn btn-primary" id="prop-detalhe-editar">Editar</button>
           </div>
@@ -416,14 +418,16 @@ const PropertiesView = {
   },
 
   deleteProp(id) {
-    if (confirm('Deseja realmente excluir este imóvel?')) {
-      Storage.deleteProperty(id);
+    this.fecharDetalhe();
+    Storage.excluirComDesfazer({
+      cache: 'propertiesCache', recurso: 'properties', id,
+      msgErro: 'O imóvel NÃO foi excluído da nuvem:',
+      aviso: 'Imóvel excluído.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); },
       // O banco leva as fotos junto (cascata). O cache local precisa saber, ou
       // as miniaturas do imóvel excluído sobrevivem até a próxima carga.
-      Storage.propertyMediaCache = Storage.propertyMediaCache.filter(m => m.property_id !== id);
-      Utils.toast('Imóvel excluído!');
-      this.render(document.getElementById('main-content'));
-    }
+      depois: () => { Storage.propertyMediaCache = Storage.propertyMediaCache.filter(m => m.property_id !== id); }
+    });
   },
 
   // ── Envio, remoção e troca de capa ─────────────────────────────────────

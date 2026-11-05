@@ -1537,3 +1537,19 @@ button.nav-item {
 .form-textarea[aria-invalid="true"] {
   border-color: var(--danger);
 }
+
+/* "Desfazer" dentro do toast: o #toast-box ignora cliques (pointer-events:
+   none, para não bloquear a tela embaixo); o botão os reativa. */
+.toast-desfazer {
+  pointer-events: auto;
+  margin-left: 8px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

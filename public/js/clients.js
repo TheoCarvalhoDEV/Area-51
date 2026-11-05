@@ -61,6 +61,8 @@ const ClientsView = {
     document.getElementById('client-detalhe-corpo').innerHTML = this.detalhe(id);
     document.getElementById('client-detalhe-editar').setAttribute('onclick',
       `ClientsView.fecharDetalhe(); ClientsView.openModal('${Utils.esc(id)}')`);
+    document.getElementById('client-detalhe-excluir').setAttribute('onclick',
+      `ClientsView.deleteClient('${Utils.esc(id)}')`);
     Utils.abrirModal('client-detalhe');
   },
 
@@ -142,7 +144,6 @@ const ClientsView = {
                     <td class="td-acoes">
                       <button class="btn btn-primary btn-sm" onclick="ClientsView.verDetalhe('${Utils.esc(c.id)}')">Ver</button>
                       <button class="btn btn-secondary btn-sm" onclick="ClientsView.openModal('${Utils.esc(c.id)}')">Editar</button>
-                      <button class="btn btn-danger btn-sm" onclick="ClientsView.deleteClient('${Utils.esc(c.id)}')">Excluir</button>
                     </td>
                   </tr>
                 `;
@@ -161,6 +162,7 @@ const ClientsView = {
           <h3 id="client-detalhe-titulo">Cliente</h3>
           <div id="client-detalhe-corpo"></div>
           <div class="modal-actions">
+            <button type="button" class="btn btn-danger" id="client-detalhe-excluir" style="margin-right:auto;">Excluir</button>
             <button type="button" class="btn btn-secondary" data-fechar onclick="ClientsView.fecharDetalhe()">Fechar</button>
             <button type="button" class="btn btn-primary" id="client-detalhe-editar">Editar</button>
           </div>
@@ -321,10 +323,12 @@ const ClientsView = {
   },
 
   deleteClient(id) {
-    if (confirm('Deseja realmente excluir este cliente?')) {
-      Storage.deleteClient(id);
-      Utils.toast('Cliente excluído!');
-      this.render(document.getElementById('main-content'));
-    }
+    this.fecharDetalhe();
+    Storage.excluirComDesfazer({
+      cache: 'clientsCache', recurso: 'clients', id,
+      msgErro: 'O cliente NÃO foi excluído da nuvem:',
+      aviso: 'Cliente excluído.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); }
+    });
   }
 };

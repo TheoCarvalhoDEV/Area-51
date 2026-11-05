@@ -91,7 +91,6 @@ const Vistorias = {
               </div>
               <div class="renov-acoes">
                 <button class="btn btn-primary btn-sm" onclick="Vistorias.abrir('${Utils.esc(v.id)}')">Abrir</button>
-                <button class="btn btn-danger btn-sm" onclick="Vistorias.excluir('${Utils.esc(v.id)}')">Excluir</button>
               </div>
             </div>
           `;
@@ -161,6 +160,7 @@ const Vistorias = {
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn btn-secondary" onclick="Vistorias.voltar()">Voltar</button>
+          <button class="btn btn-danger" onclick="Vistorias.excluir('${Utils.esc(v.id)}')">Excluir</button>
           ${fechada
             ? `<button class="btn btn-secondary" onclick="Vistorias.reabrir('${Utils.esc(v.id)}')">Reabrir</button>`
             : `<button class="btn btn-primary" onclick="Vistorias.fechar('${Utils.esc(v.id)}')">Fechar vistoria</button>`}
@@ -534,11 +534,12 @@ const Vistorias = {
   },
 
   excluir(id) {
-    if (!confirm('Excluir esta vistoria? A ação não pode ser desfeita.')) return;
-    Storage.deleteInspection(id);
-    if (this.abertaId === id) this.abertaId = null;
-    Utils.toast('Vistoria excluída.');
-    this.render(document.getElementById('main-content'));
-    App.reaplicarBusca();
+    if (this.abertaId === id) this.abertaId = null; // volta para a lista
+    Storage.excluirComDesfazer({
+      cache: 'inspectionsCache', recurso: 'inspections', id,
+      msgErro: 'A vistoria NÃO foi excluída da nuvem:',
+      aviso: 'Vistoria excluída.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); }
+    });
   }
 };

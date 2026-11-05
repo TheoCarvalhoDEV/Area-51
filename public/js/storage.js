@@ -61,6 +61,31 @@ const Storage = {
     return item;
   },
 
+  // Exclusão com "Desfazer": o item sai do cache na hora (a tela redesenha
+  // sem ele), mas o DELETE só vai ao servidor depois de 6 s. "Desfazer"
+  // devolve o item ao mesmo lugar e nada sai da nuvem. Fechar a aba nesse
+  // intervalo também não exclui — o item volta na próxima carga.
+  // `depois` roda junto com o DELETE (ex.: limpar o cache de fotos do imóvel).
+  excluirComDesfazer({ cache, recurso, id, msgErro, aviso, redesenhar, depois }) {
+    const idx = this[cache].findIndex(x => x.id === id);
+    if (idx < 0) return;
+    const item = this[cache][idx];
+    this[cache] = this[cache].filter(x => x.id !== id);
+    redesenhar();
+    const ms = 6000;
+    const timer = setTimeout(() => {
+      if (App.user) this._cloudWrite(Api.remove(recurso, id), msgErro);
+      if (depois) depois();
+    }, ms);
+    Utils.toastDesfazer(aviso, ms, () => {
+      clearTimeout(timer);
+      const lista = this[cache].slice();
+      lista.splice(Math.min(idx, lista.length), 0, item);
+      this[cache] = lista;
+      redesenhar();
+    });
+  },
+
   _excluir(cache, recurso, id, msgErro) {
     this[cache] = this[cache].filter(x => x.id !== id);
     if (App.user) this._cloudWrite(Api.remove(recurso, id), msgErro);
@@ -226,13 +251,6 @@ const Storage = {
     return item;
   },
 
-  delete(id) {
-    this.contractsCache = this.contractsCache.filter(c => c.id !== id);
-
-    if (App.user) {
-      this._cloudWrite(Api.remove('contracts', id), 'O contrato NÃO foi excluído da nuvem:');
-    }
-  },
 
   // ── Perfil do locador ──
   getAdminProfile() {
@@ -275,7 +293,6 @@ const Storage = {
 
   saveClient(client) { return this._salvar('clientsCache', 'clients', client, 'O cliente NÃO foi salvo na nuvem:'); },
 
-  deleteClient(id) { this._excluir('clientsCache', 'clients', id, 'O cliente NÃO foi excluído da nuvem:'); },
 
   // ── Inquilino do contrato vira cadastro na aba Clientes ──
   // Chamado a cada save de contrato (create/update), então é IDEMPOTENTE:
@@ -316,7 +333,6 @@ const Storage = {
 
   saveFinancialRecord(rec) { return this._salvar('financialRecordsCache', 'financial_records', rec, 'O lançamento NÃO foi salvo na nuvem:'); },
 
-  deleteFinancialRecord(id) { this._excluir('financialRecordsCache', 'financial_records', id, 'O lançamento NÃO foi excluído da nuvem:'); },
 
   // ── Vistorias ─────────────────────────────────────────────────────────
   getInspections() {
@@ -334,7 +350,6 @@ const Storage = {
 
   saveInspection(v) { return this._salvar('inspectionsCache', 'inspections', v, 'A vistoria NÃO foi salva na nuvem:'); },
 
-  deleteInspection(id) { this._excluir('inspectionsCache', 'inspections', id, 'A vistoria NÃO foi excluída da nuvem:'); },
 
   // Gerar cobranças do mês corrente para todos os contratos ativos.
   // "Ativo" é a MESMA regra dos badges (Utils.getContractStatus, por datas) —
