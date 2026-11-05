@@ -27,18 +27,18 @@ const Admin = {
           <h3 class="section-title">Dados Pessoais (Locador)</h3>
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">${isPJ ? 'Razão Social' : 'Nome Completo'}</label>
+              <label for="admin_nome_locador" class="form-label">${isPJ ? 'Razão Social' : 'Nome Completo'}</label>
               <input type="text" class="form-input" id="admin_nome_locador" value="${Utils.esc(profile.nome_locador)}">
             </div>
             <div class="form-group pf-only" ${isPJ ? 'style="display:none;"' : ''}>
-              <label class="form-label">Nacionalidade</label>
+              <label for="admin_nac_locador" class="form-label">Nacionalidade</label>
               <select class="form-input" id="admin_nac_locador">
                 <option value="brasileiro(a)">Brasileiro(a)</option>
                 <option value="estrangeiro(a)">Estrangeiro(a)</option>
               </select>
             </div>
             <div class="form-group pf-only" ${isPJ ? 'style="display:none;"' : ''}>
-              <label class="form-label">Estado Civil</label>
+              <label for="admin_est_civil_locador" class="form-label">Estado Civil</label>
               <select class="form-input" id="admin_est_civil_locador">
                 <option value="">Selecione...</option>
                 <option value="solteiro(a)">Solteiro(a)</option>
@@ -50,11 +50,11 @@ const Admin = {
               </select>
             </div>
             <div class="form-group pf-only" ${isPJ ? 'style="display:none;"' : ''}>
-              <label class="form-label">RG</label>
+              <label for="admin_rg_locador" class="form-label">RG</label>
               <input type="text" class="form-input" id="admin_rg_locador" value="${Utils.esc(profile.rg_locador)}">
             </div>
             <div class="form-group">
-              <label class="form-label">${isPJ ? 'CNPJ' : 'CPF'}</label>
+              <label for="admin_doc_locador" class="form-label">${isPJ ? 'CNPJ' : 'CPF'}</label>
               <input type="text" class="form-input" id="admin_doc_locador" data-mask="cpfcnpj" value="${Utils.esc(profile.doc_locador)}">
             </div>
           </div>
@@ -63,19 +63,19 @@ const Admin = {
           <h3 class="section-title">Dados Bancários para Recebimento</h3>
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">Banco</label>
+              <label for="admin_banco" class="form-label">Banco</label>
               <input type="text" class="form-input" id="admin_banco" value="${Utils.esc(profile.banco)}">
             </div>
             <div class="form-group">
-              <label class="form-label">Agência</label>
+              <label for="admin_agencia" class="form-label">Agência</label>
               <input type="text" class="form-input" id="admin_agencia" value="${Utils.esc(profile.agencia)}">
             </div>
             <div class="form-group">
-              <label class="form-label">Conta (com dígito)</label>
+              <label for="admin_conta_banco" class="form-label">Conta (com dígito)</label>
               <input type="text" class="form-input" id="admin_conta_banco" value="${Utils.esc(profile.conta_banco)}">
             </div>
             <div class="form-group">
-              <label class="form-label">Tipo de Conta</label>
+              <label for="admin_tipo_conta" class="form-label">Tipo de Conta</label>
               <select class="form-input" id="admin_tipo_conta">
                 <option value="">Selecione...</option>
                 <option value="Conta Corrente">Conta Corrente</option>

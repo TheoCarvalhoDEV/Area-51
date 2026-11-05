@@ -269,25 +269,25 @@ const PropertiesView = {
             <input type="hidden" id="prop-id">
 
             <div class="form-group">
-              <label class="form-label">Identificação do Imóvel *</label>
+              <label for="prop-name" class="form-label">Identificação do Imóvel *</label>
               <input type="text" id="prop-name" class="form-input" placeholder="Ex: Apto 302 - Residencial Flores" required>
             </div>
 
             <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">CEP</label>
+                <label for="prop-cep" class="form-label">CEP</label>
                 <input type="text" id="prop-cep" class="form-input" placeholder="00000-000" maxlength="9"
                   oninput="PropertiesView.buscarCEP(this.value)">
               </div>
               <div class="form-group">
-                <label class="form-label">Endereço Completo *</label>
+                <label for="prop-address" class="form-label">Endereço Completo *</label>
                 <input type="text" id="prop-address" class="form-input" placeholder="Rua, Número, Bairro, Cidade - UF" required>
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Tipo de Imóvel</label>
+                <label for="prop-type" class="form-label">Tipo de Imóvel</label>
                 <select id="prop-type" class="form-input">
                   <option value="Residencial">Residencial</option>
                   <option value="Comercial">Comercial</option>
@@ -296,7 +296,7 @@ const PropertiesView = {
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Status</label>
+                <label for="prop-status" class="form-label">Status</label>
                 <select id="prop-status" class="form-input">
                   <option value="Disponível">Disponível</option>
                   <option value="Alugado">Alugado</option>
@@ -308,34 +308,34 @@ const PropertiesView = {
 
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
               <div class="form-group">
-                <label class="form-label">Quartos</label>
+                <label for="prop-bedrooms" class="form-label">Quartos</label>
                 <input type="number" id="prop-bedrooms" class="form-input" value="1" min="0">
               </div>
               <div class="form-group">
-                <label class="form-label">Banheiros</label>
+                <label for="prop-bathrooms" class="form-label">Banheiros</label>
                 <input type="number" id="prop-bathrooms" class="form-input" value="1" min="0">
               </div>
               <div class="form-group">
-                <label class="form-label">Vagas</label>
+                <label for="prop-parking" class="form-label">Vagas</label>
                 <input type="number" id="prop-parking" class="form-input" value="0" min="0">
               </div>
               <div class="form-group">
-                <label class="form-label">Área (m²)</label>
+                <label for="prop-area" class="form-label">Área (m²)</label>
                 <input type="number" id="prop-area" class="form-input" value="50" min="0">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
               <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label">Valor Aluguel (R$)</label>
+                <label for="prop-rent" class="form-label">Valor Aluguel (R$)</label>
                 <input type="number" step="0.01" id="prop-rent" class="form-input" placeholder="0.00">
               </div>
               <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label">IPTU Mensal (R$)</label>
+                <label for="prop-iptu" class="form-label">IPTU Mensal (R$)</label>
                 <input type="number" step="0.01" id="prop-iptu" class="form-input" placeholder="0.00">
               </div>
               <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label">Condomínio (R$)</label>
+                <label for="prop-condo" class="form-label">Condomínio (R$)</label>
                 <input type="number" step="0.01" id="prop-condo" class="form-input" placeholder="0.00">
               </div>
             </div>

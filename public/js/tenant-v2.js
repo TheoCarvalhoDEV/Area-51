@@ -497,22 +497,22 @@ const Tenant = {
       let inputHtml = '';
       const val = this.contract.fields[f.name] || '';
       if (f.type === 'textarea') {
-        inputHtml = `<textarea class="form-textarea" data-field="${f.name}">${Utils.esc(val)}</textarea>`;
+        inputHtml = `<textarea class="form-textarea" id="campo-${f.name}" data-field="${f.name}">${Utils.esc(val)}</textarea>`;
       } else if (f.type === 'select') {
-        inputHtml = `<select class="form-input" data-field="${f.name}">`;
+        inputHtml = `<select class="form-input" id="campo-${f.name}" data-field="${f.name}">`;
         f.options.forEach(opt => {
           inputHtml += `<option value="${Utils.esc(opt.value)}" ${val === opt.value ? 'selected' : ''}>${Utils.esc(opt.label)}</option>`;
         });
         inputHtml += `</select>`;
       } else {
-        inputHtml = `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${Utils.esc(val)}" ${f.mask ? `data-mask="${f.mask}"` : ''}>`;
+        inputHtml = `<input type="${f.type}" class="form-input" id="campo-${f.name}" data-field="${f.name}" value="${Utils.esc(val)}" ${f.mask ? `data-mask="${f.mask}"` : ''}>`;
       }
 
       // Nome, endereço e textos longos ocupam a linha inteira do grid
       const full = f.type === 'textarea' || /nome|end_|endereco/i.test(f.name) ? ' full' : '';
 
       html += `<div class="form-group${full}">
-        <label class="form-label">${f.label}</label>
+        <label class="form-label" for="campo-${f.name}">${f.label}</label>
         ${inputHtml}
       </div>`;
     });

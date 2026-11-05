@@ -209,8 +209,8 @@ const Vistorias = {
               </div>
 
               <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">Observações</label>
-                <textarea class="form-textarea" rows="2" ${fechada ? 'disabled' : ''}
+                <label class="form-label" for="vist-obs-${i}">Observações</label>
+                <textarea class="form-textarea" rows="2" id="vist-obs-${i}" ${fechada ? 'disabled' : ''}
                   placeholder="Ex.: pintura descascando atrás da porta"
                   onchange="Vistorias.setObs('${Utils.esc(v.id)}', ${i}, this.value)">${Utils.esc(r.obs || '')}</textarea>
               </div>
@@ -233,15 +233,15 @@ const Vistorias = {
               <div class="mini-bar-head" style="margin:0;"><span class="text-muted">Data</span><b>${Utils.esc(Utils.formatDate(v.inspected_on))}</b></div>
             ` : `
               <div class="form-group" style="margin:0;">
-                <label class="form-label">Momento</label>
-                <select class="form-input" onchange="Vistorias.setCampo('${Utils.esc(v.id)}', 'tipo', this.value)">
+                <label class="form-label" for="vist-tipo">Momento</label>
+                <select class="form-input" id="vist-tipo" onchange="Vistorias.setCampo('${Utils.esc(v.id)}', 'tipo', this.value)">
                   <option value="Entrada" ${v.tipo === 'Saída' ? '' : 'selected'}>Entrada</option>
                   <option value="Saída" ${v.tipo === 'Saída' ? 'selected' : ''}>Saída</option>
                 </select>
               </div>
               <div class="form-group" style="margin:0;">
-                <label class="form-label">Data da vistoria</label>
-                <input class="form-input" type="date" value="${Utils.esc(v.inspected_on || '')}"
+                <label class="form-label" for="vist-data">Data da vistoria</label>
+                <input class="form-input" type="date" id="vist-data" value="${Utils.esc(v.inspected_on || '')}"
                   onchange="Vistorias.setCampo('${Utils.esc(v.id)}', 'inspected_on', this.value)">
               </div>
             `}

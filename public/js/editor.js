@@ -188,8 +188,8 @@ const Editor = {
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
             ${properties.length > 0 ? `
               <div>
-                <label class="form-label">Importar Imóvel</label>
-                <select class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyPropertySelection(this.value)">
+                <label class="form-label" for="imp-imovel">Importar Imóvel</label>
+                <select id="imp-imovel" class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyPropertySelection(this.value)">
                   <option value="">Selecionar...</option>
                   ${properties.map(p => `<option value="${Utils.esc(p.id)}">${Utils.esc(p.name)} (${Utils.formatCurrency(p.rent_value || 0)})</option>`).join('')}
                 </select>
@@ -197,8 +197,8 @@ const Editor = {
             ` : ''}
             ${inquilinos.length > 0 ? `
               <div>
-                <label class="form-label">Importar Inquilino</label>
-                <select class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locatario')">
+                <label class="form-label" for="imp-inquilino">Importar Inquilino</label>
+                <select id="imp-inquilino" class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locatario')">
                   <option value="">Selecionar...</option>
                   ${inquilinos.map(c => `<option value="${Utils.esc(c.id)}">${Utils.esc(c.name)}</option>`).join('')}
                 </select>
@@ -206,8 +206,8 @@ const Editor = {
             ` : ''}
             ${locadores.length > 0 ? `
               <div>
-                <label class="form-label">Importar Locador</label>
-                <select class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locador')">
+                <label class="form-label" for="imp-locador">Importar Locador</label>
+                <select id="imp-locador" class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locador')">
                   <option value="">Selecionar...</option>
                   ${locadores.map(c => `<option value="${Utils.esc(c.id)}">${Utils.esc(c.name)}</option>`).join('')}
                 </select>
@@ -243,20 +243,20 @@ const Editor = {
         const readOnlyAttr = f.readonly ? 'readonly style="background-color: var(--seg-bg);"' : '';
         
         if (f.type === 'textarea') {
-          inputHtml = `<textarea class="form-textarea" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>${Utils.esc(val)}</textarea>`;
+          inputHtml = `<textarea class="form-textarea" id="campo-${f.name}" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>${Utils.esc(val)}</textarea>`;
         } else if (f.type === 'select') {
-          inputHtml = `<select class="form-input" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>`;
+          inputHtml = `<select class="form-input" id="campo-${f.name}" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>`;
           f.options.forEach(opt => {
             const isSelected = val === opt.value ? 'selected' : '';
             inputHtml += `<option value="${Utils.esc(opt.value)}" ${isSelected}>${Utils.esc(opt.label)}</option>`;
           });
           inputHtml += `</select>`;
         } else {
-          inputHtml = `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${Utils.esc(val)}" ${f.mask ? `data-mask="${f.mask}"` : ''} ${disabledAttr} ${readOnlyAttr}>`;
+          inputHtml = `<input type="${f.type}" class="form-input" id="campo-${f.name}" data-field="${f.name}" value="${Utils.esc(val)}" ${f.mask ? `data-mask="${f.mask}"` : ''} ${disabledAttr} ${readOnlyAttr}>`;
         }
         
         html += `<div class="form-group" data-group="${f.name}">
-          <label class="form-label">${f.label}</label>
+          <label class="form-label" for="campo-${f.name}">${f.label}</label>
           ${inputHtml}
         </div>`;
       });

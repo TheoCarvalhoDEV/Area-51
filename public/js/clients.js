@@ -175,7 +175,7 @@ const ClientsView = {
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Tipo de Cliente *</label>
+                <label for="client-type" class="form-label">Tipo de Cliente *</label>
                 <select id="client-type" class="form-input">
                   <option value="Inquilino">Inquilino</option>
                   <option value="Locador">Locador</option>
@@ -184,7 +184,7 @@ const ClientsView = {
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Pessoa</label>
+                <label for="client-person-type" class="form-label">Pessoa</label>
                 <select id="client-person-type" class="form-input" onchange="ClientsView.updateDocLabel()">
                   <option value="PF">Pessoa Física (PF)</option>
                   <option value="PJ">Pessoa Jurídica (PJ)</option>
@@ -193,45 +193,45 @@ const ClientsView = {
             </div>
 
             <div class="form-group">
-              <label class="form-label">Nome Completo / Razão Social *</label>
+              <label for="client-name" class="form-label">Nome Completo / Razão Social *</label>
               <input type="text" id="client-name" class="form-input" placeholder="Ex: João da Silva" required>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label id="doc-label" class="form-label">CPF *</label>
+                <label for="client-doc" id="doc-label" class="form-label">CPF *</label>
                 <input type="text" id="client-doc" class="form-input" placeholder="000.000.000-00" required>
               </div>
               <div class="form-group">
-                <label class="form-label">RG / IE</label>
+                <label for="client-rg" class="form-label">RG / IE</label>
                 <input type="text" id="client-rg" class="form-input" placeholder="0000000 SSP/UF">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Telefone / WhatsApp</label>
+                <label for="client-phone" class="form-label">Telefone / WhatsApp</label>
                 <input type="text" id="client-phone" class="form-input" placeholder="(00) 90000-0000">
               </div>
               <div class="form-group">
-                <label class="form-label">E-mail</label>
+                <label for="client-email" class="form-label">E-mail</label>
                 <input type="email" id="client-email" class="form-input" placeholder="email@exemplo.com">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Profissão</label>
+                <label for="client-profession" class="form-label">Profissão</label>
                 <input type="text" id="client-profession" class="form-input" placeholder="Ex: Engenheiro">
               </div>
               <div class="form-group">
-                <label class="form-label">Renda Declarada (R$)</label>
+                <label for="client-income" class="form-label">Renda Declarada (R$)</label>
                 <input type="number" step="0.01" id="client-income" class="form-input" placeholder="0.00">
               </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem;">
-              <label class="form-label">Endereço Residencial/Comercial</label>
+              <label for="client-address" class="form-label">Endereço Residencial/Comercial</label>
               <input type="text" id="client-address" class="form-input" placeholder="Rua, Número, Bairro, Cidade - UF">
             </div>
 
