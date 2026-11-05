@@ -959,7 +959,7 @@ test('/c serve o app -- e o endereco dos links de inquilino', async () => {
   // do vercel.json; com ele apagado, sem esta rota TODO link gerado daria 404.
   const r = await fetch(base + '/c');
   assert.strictEqual(r.status, 200);
-  assert.ok((await r.text()).includes('MEUS IMÓVEIS APP'));
+  assert.ok((await r.text()).includes('id="main-content"'), 'e o app.html, nao outra pagina');
 });
 
 test('o front e servido e vem com os cabecalhos de seguranca', async () => {
@@ -977,7 +977,7 @@ test('o front e servido e vem com os cabecalhos de seguranca', async () => {
   assert.match(csp, /script-src 'self' 'unsafe-inline'/);
   assert.doesNotMatch(csp, /script-src-attr|upgrade-insecure-requests/);
   assert.ok(r.headers.get('strict-transport-security'), 'HSTS vem do helmet');
-  assert.ok((await r.text()).includes('MEUS IMÓVEIS APP'));
+  assert.ok((await r.text()).includes('id="main-content"'), 'e o app.html, nao outra pagina');
 });
 
 // ── Imagens fora da listagem ────────────────────────────────────────────

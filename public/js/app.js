@@ -192,6 +192,13 @@ const App = {
   },
 
   updateNav(route) {
+    // Título da aba e do histórico por tela. O rótulo vem da própria barra
+    // lateral; as rotas que não estão nela têm nome aqui.
+    const rotulo = { editor: 'Contrato', tenant: 'Contrato de locação', import: 'Importando contrato' }[route]
+      || (document.querySelector(`.app-sidebar .nav-item[href="#${route}"] .nav-label`) || {}).textContent
+      || 'Painel';
+    document.title = `${rotulo} · Meus Imóveis`;
+
     document.querySelectorAll('.nav-item').forEach(el => {
       el.classList.remove('active');
       // Botões de ação (Tema, Sair) são .nav-item sem href — nunca casam, nunca ficam ativos.
