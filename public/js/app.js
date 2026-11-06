@@ -44,6 +44,10 @@ const App = {
       this._lastUid = newUid;
 
       if (user) {
+        // Até as listas chegarem o conteúdo ficava em branco ao lado da barra
+        // lateral; em rede lenta parecia travado. Quatro cartões cinza seguram
+        // o lugar até a primeira tela.
+        this.container.innerHTML = `<div class="metric-grid" aria-busy="true" aria-label="Carregando">${'<div class="card esqueleto"></div>'.repeat(4)}</div>`;
         Storage.loadCloudData().then(() => this.handleRoute());
       } else {
         this.handleRoute();
@@ -51,6 +55,23 @@ const App = {
     });
 
     window.addEventListener('hashchange', () => this.handleRoute());
+
+    // Esc fecha o modal do topo pelo próprio botão Fechar/Cancelar dele
+    // ([data-fechar]), que já sabe desligar câmera e limpar estado.
+    document.addEventListener('keydown', (e) => {
+      // div/span com role="button" (cabeçalhos que recolhem, cartões PF/PJ…)
+      // respondem a Enter e Espaço como um <button> de verdade
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"]:not(button)')) {
+        e.preventDefault();
+        e.target.click();
+        return;
+      }
+      if (e.key !== 'Escape') return;
+      const aberto = [...document.querySelectorAll('.modal-backdrop')].reverse()
+        .find(m => m.style.display === 'flex');
+      const fechar = aberto && aberto.querySelector('[data-fechar]');
+      if (fechar) fechar.click();
+    });
 
     // Pergunta ao servidor quem esta logado. Ate a resposta chegar, o Api
     // considera ninguem — fail-closed: o painel nao abre sem saber de quem e.
@@ -175,6 +196,13 @@ const App = {
   },
 
   updateNav(route) {
+    // Título da aba e do histórico por tela. O rótulo vem da própria barra
+    // lateral; as rotas que não estão nela têm nome aqui.
+    const rotulo = { editor: 'Contrato', tenant: 'Contrato de locação', import: 'Importando contrato' }[route]
+      || (document.querySelector(`.app-sidebar .nav-item[href="#${route}"] .nav-label`) || {}).textContent
+      || 'Painel';
+    document.title = `${rotulo} · Meus Imóveis`;
+
     document.querySelectorAll('.nav-item').forEach(el => {
       el.classList.remove('active');
       // Botões de ação (Tema, Sair) são .nav-item sem href — nunca casam, nunca ficam ativos.

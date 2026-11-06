@@ -79,15 +79,18 @@ const Editor = {
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
             Salvar
           </button>
-          <button class="btn btn-primary" onclick="Editor.generateTenantLink()">
+          <button class="btn btn-primary editor-acao-principal" onclick="Editor.generateTenantLink()">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
             Gerar Link p/ Inquilino
           </button>
           ` : ''}
-          <button class="btn btn-primary" onclick="generatePDF()">
+          <button class="btn btn-secondary" onclick="generatePDF()">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
             PDF
           </button>
+          ${Storage.getById(this.contract.id) ? `
+          <button type="button" class="btn btn-danger" onclick="ContractsView.deleteContract('${Utils.esc(this.contract.id)}')">Excluir</button>
+          ` : ''}
         </div>
       </div>
 
@@ -188,8 +191,8 @@ const Editor = {
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
             ${properties.length > 0 ? `
               <div>
-                <label class="form-label">Importar Imóvel</label>
-                <select class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyPropertySelection(this.value)">
+                <label class="form-label" for="imp-imovel">Importar Imóvel</label>
+                <select id="imp-imovel" class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyPropertySelection(this.value)">
                   <option value="">Selecionar...</option>
                   ${properties.map(p => `<option value="${Utils.esc(p.id)}">${Utils.esc(p.name)} (${Utils.formatCurrency(p.rent_value || 0)})</option>`).join('')}
                 </select>
@@ -197,8 +200,8 @@ const Editor = {
             ` : ''}
             ${inquilinos.length > 0 ? `
               <div>
-                <label class="form-label">Importar Inquilino</label>
-                <select class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locatario')">
+                <label class="form-label" for="imp-inquilino">Importar Inquilino</label>
+                <select id="imp-inquilino" class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locatario')">
                   <option value="">Selecionar...</option>
                   ${inquilinos.map(c => `<option value="${Utils.esc(c.id)}">${Utils.esc(c.name)}</option>`).join('')}
                 </select>
@@ -206,8 +209,8 @@ const Editor = {
             ` : ''}
             ${locadores.length > 0 ? `
               <div>
-                <label class="form-label">Importar Locador</label>
-                <select class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locador')">
+                <label class="form-label" for="imp-locador">Importar Locador</label>
+                <select id="imp-locador" class="form-input" style="font-size: 0.85rem;" onchange="Editor.applyClientSelection(this.value, 'locador')">
                   <option value="">Selecionar...</option>
                   ${locadores.map(c => `<option value="${Utils.esc(c.id)}">${Utils.esc(c.name)}</option>`).join('')}
                 </select>
@@ -226,7 +229,7 @@ const Editor = {
       
       html += `
         <div class="form-section" style="${isHidden ? 'display: none;' : ''}">
-          <div class="form-section-header" onclick="this.classList.toggle('collapsed')">
+          <div class="form-section-header" role="button" tabindex="0" aria-expanded="true" onclick="this.setAttribute('aria-expanded', !this.classList.toggle('collapsed'))">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             <h3>${secName}</h3>
           </div>
@@ -243,20 +246,20 @@ const Editor = {
         const readOnlyAttr = f.readonly ? 'readonly style="background-color: var(--seg-bg);"' : '';
         
         if (f.type === 'textarea') {
-          inputHtml = `<textarea class="form-textarea" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>${Utils.esc(val)}</textarea>`;
+          inputHtml = `<textarea class="form-textarea" id="campo-${f.name}" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>${Utils.esc(val)}</textarea>`;
         } else if (f.type === 'select') {
-          inputHtml = `<select class="form-input" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>`;
+          inputHtml = `<select class="form-input" id="campo-${f.name}" data-field="${f.name}" ${disabledAttr} ${readOnlyAttr}>`;
           f.options.forEach(opt => {
             const isSelected = val === opt.value ? 'selected' : '';
             inputHtml += `<option value="${Utils.esc(opt.value)}" ${isSelected}>${Utils.esc(opt.label)}</option>`;
           });
           inputHtml += `</select>`;
         } else {
-          inputHtml = `<input type="${f.type}" class="form-input" data-field="${f.name}" value="${Utils.esc(val)}" ${f.mask ? `data-mask="${f.mask}"` : ''} ${disabledAttr} ${readOnlyAttr}>`;
+          inputHtml = `<input type="${f.type}" class="form-input" id="campo-${f.name}" data-field="${f.name}" value="${Utils.esc(val)}" ${f.mask ? `data-mask="${f.mask}"` : ''} ${disabledAttr} ${readOnlyAttr}>`;
         }
         
         html += `<div class="form-group" data-group="${f.name}">
-          <label class="form-label">${f.label}</label>
+          <label class="form-label" for="campo-${f.name}">${f.label}</label>
           ${inputHtml}
         </div>`;
       });
@@ -276,7 +279,7 @@ const Editor = {
         </label>`;
       html += `
         <div class="form-section">
-          <div class="form-section-header" onclick="this.classList.toggle('collapsed')">
+          <div class="form-section-header" role="button" tabindex="0" aria-expanded="true" onclick="this.setAttribute('aria-expanded', !this.classList.toggle('collapsed'))">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             <h3>Validação do Inquilino</h3>
           </div>
@@ -293,7 +296,7 @@ const Editor = {
     // depois do inquilino) — diferente da validação acima, que é exigência dele.
     html += `
       <div class="form-section">
-        <div class="form-section-header" onclick="this.classList.toggle('collapsed')">
+        <div class="form-section-header" role="button" tabindex="0" aria-expanded="true" onclick="this.setAttribute('aria-expanded', !this.classList.toggle('collapsed'))">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           <h3>Assinatura do Locador</h3>
         </div>
@@ -366,6 +369,7 @@ const Editor = {
       el.addEventListener('input', () => {
         const fieldName = el.getAttribute('data-field');
         this.contract.fields[fieldName] = el.value;
+        Utils.limparErro(el); // começou a corrigir: a mensagem sai
         
         // Auto-preencher valor por extenso se for campo monetário
         if (fieldName === 'valor_aluguel' || fieldName === 'valor_bonus' || fieldName === 'valor_caucao') {
@@ -503,6 +507,25 @@ const Editor = {
     // valor jurídico se os termos essenciais já estiverem no documento que ele vai ler.
     const faltando = Utils.faltamParaOLink(this.contract.fields, this.template);
     if (faltando.length) {
+      // Marca cada campo que falta (abrindo a seção, se recolhida) e foca o
+      // primeiro. O mapa segue os rótulos de Utils.faltamParaOLink; rótulo sem
+      // par aqui só deixa de ser marcado — o toast continua listando tudo.
+      const CAMPO = {
+        'Valor do aluguel': 'valor_aluguel',
+        'Endereço do imóvel': 'end_imovel',
+        'Data de início': 'data_inicio',
+        'Prazo do contrato': 'prazo_extenso',
+        'Dia de vencimento': 'dia_vencimento'
+      };
+      const els = faltando
+        .map(rotulo => document.getElementById('campo-' + CAMPO[rotulo]))
+        .filter(Boolean);
+      els.forEach(el => {
+        Utils.marcarErro(el, 'Obrigatório para gerar o link do inquilino.');
+        const cab = el.closest('.form-section').querySelector('.form-section-header');
+        if (cab && cab.classList.contains('collapsed')) cab.click();
+      });
+      if (els[0]) els[0].focus();
       Utils.toast('Antes de enviar ao inquilino, preencha: ' + faltando.join(', ') + '.', 'error');
       return;
     }

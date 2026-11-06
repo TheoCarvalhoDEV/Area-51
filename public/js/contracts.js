@@ -126,10 +126,6 @@ const ContractsView = {
         </div>
         <div class="contrato-linha-acoes">
           <a class="btn btn-secondary btn-sm" href="#editor?id=${Utils.esc(c.id)}">Abrir</a>
-          <button type="button" class="btn-icon" onclick="ContractsView.deleteContract('${Utils.esc(c.id)}')"
-            title="Excluir contrato" aria-label="Excluir contrato de ${Utils.esc(nome)}">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-          </button>
         </div>
       </div>
     `;
@@ -143,12 +139,14 @@ const ContractsView = {
     return String(v).indexOf('R$') === 0 ? v : Utils.formatCurrency(v);
   },
 
+  // Chamado do editor: volta para a lista, já sem o contrato, com "Desfazer".
   deleteContract(id) {
-    if (confirm('Tem certeza que deseja excluir este contrato permanentemente?')) {
-      Storage.delete(id);
-      // Re-renderizar a tela para atualizar a lista
-      this.render(document.getElementById('main-content') || document.body);
-      App.reaplicarBusca();
-    }
+    location.hash = '#contracts';
+    Storage.excluirComDesfazer({
+      cache: 'contractsCache', recurso: 'contracts', id,
+      msgErro: 'O contrato NÃO foi excluído da nuvem:',
+      aviso: 'Contrato excluído.',
+      redesenhar: () => App.handleRoute()
+    });
   }
 };

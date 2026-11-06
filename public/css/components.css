@@ -459,6 +459,22 @@ button.nav-item {
   }
 }
 
+/* No celular a busca também existe (as listas crescem sem filtro): fica logo
+   abaixo do cabeçalho fixo de 60px e gruda ali ao rolar. Com ela visível, o
+   <main> não precisa mais da folga do cabeçalho. */
+@media (max-width: 768px) {
+  .content-bar {
+    display: flex;
+    margin-top: 60px;
+    top: 60px;
+    padding: 10px 16px;
+  }
+  .content-bar .content-search { flex: 1; }
+  .content-bar:not([hidden]) + #main-content {
+    padding-top: 1.25rem;
+  }
+}
+
 .content-search {
   display: flex;
   align-items: center;
@@ -1508,4 +1524,60 @@ button.nav-item {
   .hero-panel { padding: 22px 18px; }
   .duas-colunas { grid-template-columns: 1fr; }
   .lista-valor { min-width: 0; }
+}
+
+/* Link "Pular para o conteúdo": fora da tela até receber foco pelo Tab */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 10000;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--color-neutral-100);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+#main-content:focus { outline: none; } /* alvo do skip-link, não controle */
+
+/* Erro no próprio campo (Utils.marcarErro) */
+.form-erro {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+}
+.form-input[aria-invalid="true"],
+.form-textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+/* "Desfazer" dentro do toast: o #toast-box ignora cliques (pointer-events:
+   none, para não bloquear a tela embaixo); o botão os reativa. */
+.toast-desfazer {
+  pointer-events: auto;
+  margin-left: 8px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--primary);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Esqueleto da carga inicial (App.init) */
+.esqueleto {
+  min-height: 118px;
+  background: var(--seg-bg);
+  border-color: transparent;
+  animation: esqueleto-pulsa 1.1s ease-in-out infinite alternate;
+}
+@keyframes esqueleto-pulsa { to { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto { animation: none; }
 }

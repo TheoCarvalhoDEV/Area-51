@@ -28,7 +28,7 @@
        <meta> (só vale como cabeçalho). Quem barra clickjacking é o
        X-Frame-Options que o server/index.js envia. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.ipify.org https://ipapi.co https://viacep.com.br; object-src 'none'; base-uri 'self'; form-action 'self'">
-  <title>MEUS IMÓVEIS APP</title>
+  <title>Meus Imóveis</title>
   <script>
     // Aplica o tema ANTES da pintura para nao piscar branco ao carregar.
     // Preferencia salva vence; sem ela, segue o tema do sistema operacional.
@@ -96,6 +96,10 @@
 </head>
 
 <body>
+  <!-- Teclado: pula as 13 paradas da barra lateral. Foca o <main> em vez de
+       navegar para #main-content, que o roteador leria como rota. -->
+  <a class="skip-link" href="#main-content"
+    onclick="event.preventDefault(); document.getElementById('main-content').focus()">Pular para o conteúdo</a>
 
   <!-- Mobile Header -->
   <header class="mobile-header">
@@ -231,7 +235,7 @@
       <!-- Barra de conteudo: a busca filtra a lista JA renderizada da rota
            atual (os itens marcados com data-busca). App.updateNav esconde a
            barra nas rotas sem lista, para não sobrar um campo que não faz nada. -->
-      <header class="content-bar" id="content-bar">
+      <header class="content-bar" id="content-bar" hidden>
         <label class="content-search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
           <input type="search" id="busca-global" placeholder="Buscar nesta lista…" autocomplete="off"
@@ -240,7 +244,7 @@
       </header>
 
       <!-- Main Content -->
-      <main id="main-content">
+      <main id="main-content" tabindex="-1">
         <!-- O conteúdo será injetado aqui via JS -->
       </main>
     </div>

@@ -24,6 +24,15 @@ const Financeiro = {
     return `${this.MESES[Number(m) - 1] || '?'} de ${a}`;
   },
 
+  // Aba da régua: só o nome do mês; quando a régua cruza a virada do ano,
+  // todas levam o ano ("dez/25", "jan/26") — senão em janeiro "dezembro"
+  // parece deste ano.
+  rotuloAba(ym, meses) {
+    const nome = this.rotuloMes(ym).split(' de ')[0];
+    const variosAnos = new Set(meses.map(m => m.slice(0, 4))).size > 1;
+    return variosAnos ? nome.slice(0, 3) + '/' + ym.slice(2, 4) : nome;
+  },
+
   setMes(ym) {
     this.mes = ym;
     this.render(document.getElementById('main-content'));
@@ -83,7 +92,7 @@ const Financeiro = {
         <div class="seg-tabs" role="tablist" aria-label="Mês">
           ${meses.map(m => `<button type="button" class="seg-tab ${m === this.mes ? 'active' : ''}"
             role="tab" aria-selected="${m === this.mes}"
-            onclick="Financeiro.setMes('${Utils.esc(m)}')">${Utils.esc(this.rotuloMes(m).split(' de ')[0])}</button>`).join('')}
+            onclick="Financeiro.setMes('${Utils.esc(m)}')">${Utils.esc(this.rotuloAba(m, meses))}</button>`).join('')}
         </div>
       </div>
 
@@ -104,7 +113,7 @@ const Financeiro = {
         <div class="painel-secao-head" style="flex-wrap:wrap;">
           <h4>Aluguéis de ${Utils.esc(this.rotuloMes(this.mes))}</h4>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="Financeiro.gerarCobrancas()">Gerar cobranças do mês</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="Financeiro.gerarCobrancas()">Gerar cobranças de ${Utils.esc(this.rotuloMes(new Date().toISOString().slice(0, 7)).split(' de ')[0])}</button>
             <button type="button" class="btn btn-secondary btn-sm" onclick="Financeiro.exportarCSV()" ${regs.length ? '' : 'disabled'}>Exportar CSV</button>
           </div>
         </div>
@@ -136,7 +145,7 @@ const Financeiro = {
                     <td class="td-acoes">
                       <button class="btn btn-${pago ? 'secondary' : 'primary'} btn-sm"
                         onclick="Financeiro.alternarPago('${Utils.esc(r.id)}')">${pago ? 'Reabrir' : 'Marcar pago'}</button>
-                      <button class="btn btn-danger btn-sm" onclick="Financeiro.excluir('${Utils.esc(r.id)}')">Excluir</button>
+                      <button class="btn btn-secondary btn-sm" onclick="Financeiro.excluir('${Utils.esc(r.id)}')">Excluir</button>
                     </td>
                   </tr>
                 `;
@@ -147,7 +156,7 @@ const Financeiro = {
         ` : `
           <p class="text-muted" style="margin: 8px 0 0;">
             Nenhuma cobrança lançada em ${Utils.esc(this.rotuloMes(this.mes))}.
-            "Gerar cobranças do mês" cria uma linha para cada contrato ativo com valor de aluguel.
+            "Gerar cobranças de ${Utils.esc(this.rotuloMes(new Date().toISOString().slice(0, 7)).split(' de ')[0])}" cria uma linha para cada contrato ativo com valor de aluguel.
           </p>
         `}
       </div>
@@ -185,11 +194,12 @@ const Financeiro = {
   },
 
   excluir(id) {
-    if (!confirm('Excluir este lançamento? A ação não pode ser desfeita.')) return;
-    Storage.deleteFinancialRecord(id);
-    Utils.toast('Lançamento excluído.');
-    this.render(document.getElementById('main-content'));
-    App.reaplicarBusca();
+    Storage.excluirComDesfazer({
+      cache: 'financialRecordsCache', recurso: 'financial_records', id,
+      msgErro: 'O lançamento NÃO foi excluído da nuvem:',
+      aviso: 'Lançamento excluído.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); }
+    });
   },
 
   gerarCobrancas() {

@@ -126,11 +126,13 @@ const PropertiesView = {
     document.getElementById('prop-detalhe-corpo').innerHTML = this.detalhe(id);
     document.getElementById('prop-detalhe-editar').setAttribute('onclick',
       `PropertiesView.fecharDetalhe(); PropertiesView.openModal('${Utils.esc(id)}')`);
-    document.getElementById('prop-detalhe').style.display = 'flex';
+    document.getElementById('prop-detalhe-excluir').setAttribute('onclick',
+      `PropertiesView.deleteProp('${Utils.esc(id)}')`);
+    Utils.abrirModal('prop-detalhe');
   },
 
   fecharDetalhe() {
-    document.getElementById('prop-detalhe').style.display = 'none';
+    Utils.fecharModal('prop-detalhe');
   },
 
   render(container) {
@@ -233,7 +235,6 @@ const PropertiesView = {
                   <div style="display:flex; gap:6px;">
                     <button class="btn btn-primary btn-sm" onclick="PropertiesView.verDetalhe('${Utils.esc(p.id)}')">Ver</button>
                     <button class="btn btn-secondary btn-sm" onclick="PropertiesView.openModal('${Utils.esc(p.id)}')">Editar</button>
-                    <button class="btn btn-danger btn-sm" onclick="PropertiesView.deleteProp('${Utils.esc(p.id)}')">Excluir</button>
                   </div>
                 </div>
               </div>
@@ -255,7 +256,8 @@ const PropertiesView = {
           <h3 id="prop-detalhe-titulo">Imóvel</h3>
           <div id="prop-detalhe-corpo"></div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="PropertiesView.fecharDetalhe()">Fechar</button>
+            <button type="button" class="btn btn-danger" id="prop-detalhe-excluir" style="margin-right:auto;">Excluir</button>
+            <button type="button" class="btn btn-secondary" data-fechar onclick="PropertiesView.fecharDetalhe()">Fechar</button>
             <button type="button" class="btn btn-primary" id="prop-detalhe-editar">Editar</button>
           </div>
         </div>
@@ -269,25 +271,25 @@ const PropertiesView = {
             <input type="hidden" id="prop-id">
 
             <div class="form-group">
-              <label class="form-label">Identificação do Imóvel *</label>
+              <label for="prop-name" class="form-label">Identificação do Imóvel *</label>
               <input type="text" id="prop-name" class="form-input" placeholder="Ex: Apto 302 - Residencial Flores" required>
             </div>
 
             <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">CEP</label>
+                <label for="prop-cep" class="form-label">CEP</label>
                 <input type="text" id="prop-cep" class="form-input" placeholder="00000-000" maxlength="9"
                   oninput="PropertiesView.buscarCEP(this.value)">
               </div>
               <div class="form-group">
-                <label class="form-label">Endereço Completo *</label>
+                <label for="prop-address" class="form-label">Endereço Completo *</label>
                 <input type="text" id="prop-address" class="form-input" placeholder="Rua, Número, Bairro, Cidade - UF" required>
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Tipo de Imóvel</label>
+                <label for="prop-type" class="form-label">Tipo de Imóvel</label>
                 <select id="prop-type" class="form-input">
                   <option value="Residencial">Residencial</option>
                   <option value="Comercial">Comercial</option>
@@ -296,7 +298,7 @@ const PropertiesView = {
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Status</label>
+                <label for="prop-status" class="form-label">Status</label>
                 <select id="prop-status" class="form-input">
                   <option value="Disponível">Disponível</option>
                   <option value="Alugado">Alugado</option>
@@ -308,40 +310,40 @@ const PropertiesView = {
 
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
               <div class="form-group">
-                <label class="form-label">Quartos</label>
+                <label for="prop-bedrooms" class="form-label">Quartos</label>
                 <input type="number" id="prop-bedrooms" class="form-input" value="1" min="0">
               </div>
               <div class="form-group">
-                <label class="form-label">Banheiros</label>
+                <label for="prop-bathrooms" class="form-label">Banheiros</label>
                 <input type="number" id="prop-bathrooms" class="form-input" value="1" min="0">
               </div>
               <div class="form-group">
-                <label class="form-label">Vagas</label>
+                <label for="prop-parking" class="form-label">Vagas</label>
                 <input type="number" id="prop-parking" class="form-input" value="0" min="0">
               </div>
               <div class="form-group">
-                <label class="form-label">Área (m²)</label>
+                <label for="prop-area" class="form-label">Área (m²)</label>
                 <input type="number" id="prop-area" class="form-input" value="50" min="0">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
               <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label">Valor Aluguel (R$)</label>
+                <label for="prop-rent" class="form-label">Valor Aluguel (R$)</label>
                 <input type="number" step="0.01" id="prop-rent" class="form-input" placeholder="0.00">
               </div>
               <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label">IPTU Mensal (R$)</label>
+                <label for="prop-iptu" class="form-label">IPTU Mensal (R$)</label>
                 <input type="number" step="0.01" id="prop-iptu" class="form-input" placeholder="0.00">
               </div>
               <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label">Condomínio (R$)</label>
+                <label for="prop-condo" class="form-label">Condomínio (R$)</label>
                 <input type="number" step="0.01" id="prop-condo" class="form-input" placeholder="0.00">
               </div>
             </div>
 
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" onclick="PropertiesView.closeModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary" data-fechar onclick="PropertiesView.closeModal()">Cancelar</button>
               <button type="submit" class="btn btn-primary">Salvar Imóvel</button>
             </div>
           </form>
@@ -358,7 +360,7 @@ const PropertiesView = {
   openModal(id = null) {
     const modal = document.getElementById('prop-modal');
     const title = document.getElementById('prop-modal-title');
-    modal.style.display = 'flex';
+    Utils.abrirModal('prop-modal');
 
     if (id) {
       const prop = Storage.getProperties().find(p => p.id === id);
@@ -387,7 +389,7 @@ const PropertiesView = {
   },
 
   closeModal() {
-    document.getElementById('prop-modal').style.display = 'none';
+    Utils.fecharModal('prop-modal');
   },
 
   saveProp(e) {
@@ -416,14 +418,16 @@ const PropertiesView = {
   },
 
   deleteProp(id) {
-    if (confirm('Deseja realmente excluir este imóvel?')) {
-      Storage.deleteProperty(id);
+    this.fecharDetalhe();
+    Storage.excluirComDesfazer({
+      cache: 'propertiesCache', recurso: 'properties', id,
+      msgErro: 'O imóvel NÃO foi excluído da nuvem:',
+      aviso: 'Imóvel excluído.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); },
       // O banco leva as fotos junto (cascata). O cache local precisa saber, ou
       // as miniaturas do imóvel excluído sobrevivem até a próxima carga.
-      Storage.propertyMediaCache = Storage.propertyMediaCache.filter(m => m.property_id !== id);
-      Utils.toast('Imóvel excluído!');
-      this.render(document.getElementById('main-content'));
-    }
+      depois: () => { Storage.propertyMediaCache = Storage.propertyMediaCache.filter(m => m.property_id !== id); }
+    });
   },
 
   // ── Envio, remoção e troca de capa ─────────────────────────────────────

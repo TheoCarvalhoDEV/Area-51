@@ -157,7 +157,7 @@ const SuperAdmin = {
         const detalhe = Utils.dadosClienteHTML(c.fields, c.created_at) ||
           '<p style="color: var(--text-muted); font-size: 13px; margin: 0;">Contrato ainda sem dados preenchidos.</p>';
         return `
-          <div class="sa-contrato-row" onclick="SuperAdmin.toggleContrato(${i}, ${j}, this)">
+          <div class="sa-contrato-row" role="button" tabindex="0" onclick="SuperAdmin.toggleContrato(${i}, ${j}, this)">
             ${chevron}
             <div class="sa-contrato-nome">${nomeLocatario}<span class="badge-status ${status.class}">${status.label}</span></div>
             <div class="sa-contrato-valor">${valor}</div>
@@ -174,7 +174,7 @@ const SuperAdmin = {
 
       return `
         <div class="recent-section sa-conta" data-busca="${Utils.esc(busca)}">
-          <div class="recent-header" style="cursor: pointer;" onclick="SuperAdmin.toggle(${i})">
+          <div class="recent-header" role="button" tabindex="0" style="cursor: pointer;" onclick="SuperAdmin.toggle(${i})">
             <div style="min-width: 0;">
               <h2 class="recent-title">${Utils.esc(conta.nome || conta.email || 'Conta sem perfil')}</h2>
               <div style="font-size: 12px; color: var(--text-light);">${conta.email ? Utils.esc(conta.email) : Utils.esc(conta.userId)}</div>

@@ -61,11 +61,13 @@ const ClientsView = {
     document.getElementById('client-detalhe-corpo').innerHTML = this.detalhe(id);
     document.getElementById('client-detalhe-editar').setAttribute('onclick',
       `ClientsView.fecharDetalhe(); ClientsView.openModal('${Utils.esc(id)}')`);
-    document.getElementById('client-detalhe').style.display = 'flex';
+    document.getElementById('client-detalhe-excluir').setAttribute('onclick',
+      `ClientsView.deleteClient('${Utils.esc(id)}')`);
+    Utils.abrirModal('client-detalhe');
   },
 
   fecharDetalhe() {
-    document.getElementById('client-detalhe').style.display = 'none';
+    Utils.fecharModal('client-detalhe');
   },
 
   render(container) {
@@ -105,7 +107,7 @@ const ClientsView = {
       ` : `
         <div class="card animate-fade-in-up" style="padding: 22px 26px;">
           <div class="data-table-wrap">
-            <table class="data-table">
+            <table class="data-table data-table-cards">
               <thead>
                 <tr>
                   <th>Nome</th>
@@ -130,17 +132,18 @@ const ClientsView = {
                         </span>
                       </div>
                     </td>
-                    <td>${this.badgeTipo(c.client_type)}</td>
-                    <td>${Utils.esc(c.document ? Utils.maskCPFCNPJ(c.document) : '—')}</td>
-                    <td>
-                      ${Utils.esc(c.phone || '—')}
-                      <span class="td-sub">${Utils.esc(c.email || '—')}</span>
+                    <td data-label="Papel">${this.badgeTipo(c.client_type)}</td>
+                    <td data-label="Documento">${Utils.esc(c.document ? Utils.maskCPFCNPJ(c.document) : '—')}</td>
+                    <td data-label="Contato">
+                      <span>
+                        ${Utils.esc(c.phone || '—')}
+                        <span class="td-sub">${Utils.esc(c.email || '—')}</span>
+                      </span>
                     </td>
-                    <td>${n ? `${n} contrato${n === 1 ? '' : 's'}` : '<span class="text-muted">—</span>'}</td>
+                    <td data-label="Contratos">${n ? `${n} contrato${n === 1 ? '' : 's'}` : '<span class="text-muted">—</span>'}</td>
                     <td class="td-acoes">
                       <button class="btn btn-primary btn-sm" onclick="ClientsView.verDetalhe('${Utils.esc(c.id)}')">Ver</button>
                       <button class="btn btn-secondary btn-sm" onclick="ClientsView.openModal('${Utils.esc(c.id)}')">Editar</button>
-                      <button class="btn btn-danger btn-sm" onclick="ClientsView.deleteClient('${Utils.esc(c.id)}')">Excluir</button>
                     </td>
                   </tr>
                 `;
@@ -159,7 +162,8 @@ const ClientsView = {
           <h3 id="client-detalhe-titulo">Cliente</h3>
           <div id="client-detalhe-corpo"></div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" onclick="ClientsView.fecharDetalhe()">Fechar</button>
+            <button type="button" class="btn btn-danger" id="client-detalhe-excluir" style="margin-right:auto;">Excluir</button>
+            <button type="button" class="btn btn-secondary" data-fechar onclick="ClientsView.fecharDetalhe()">Fechar</button>
             <button type="button" class="btn btn-primary" id="client-detalhe-editar">Editar</button>
           </div>
         </div>
@@ -173,7 +177,7 @@ const ClientsView = {
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Tipo de Cliente *</label>
+                <label for="client-type" class="form-label">Tipo de Cliente *</label>
                 <select id="client-type" class="form-input">
                   <option value="Inquilino">Inquilino</option>
                   <option value="Locador">Locador</option>
@@ -182,7 +186,7 @@ const ClientsView = {
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Pessoa</label>
+                <label for="client-person-type" class="form-label">Pessoa</label>
                 <select id="client-person-type" class="form-input" onchange="ClientsView.updateDocLabel()">
                   <option value="PF">Pessoa Física (PF)</option>
                   <option value="PJ">Pessoa Jurídica (PJ)</option>
@@ -191,50 +195,50 @@ const ClientsView = {
             </div>
 
             <div class="form-group">
-              <label class="form-label">Nome Completo / Razão Social *</label>
+              <label for="client-name" class="form-label">Nome Completo / Razão Social *</label>
               <input type="text" id="client-name" class="form-input" placeholder="Ex: João da Silva" required>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label id="doc-label" class="form-label">CPF *</label>
+                <label for="client-doc" id="doc-label" class="form-label">CPF *</label>
                 <input type="text" id="client-doc" class="form-input" placeholder="000.000.000-00" required>
               </div>
               <div class="form-group">
-                <label class="form-label">RG / IE</label>
+                <label for="client-rg" class="form-label">RG / IE</label>
                 <input type="text" id="client-rg" class="form-input" placeholder="0000000 SSP/UF">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Telefone / WhatsApp</label>
+                <label for="client-phone" class="form-label">Telefone / WhatsApp</label>
                 <input type="text" id="client-phone" class="form-input" placeholder="(00) 90000-0000">
               </div>
               <div class="form-group">
-                <label class="form-label">E-mail</label>
+                <label for="client-email" class="form-label">E-mail</label>
                 <input type="email" id="client-email" class="form-input" placeholder="email@exemplo.com">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div class="form-group">
-                <label class="form-label">Profissão</label>
+                <label for="client-profession" class="form-label">Profissão</label>
                 <input type="text" id="client-profession" class="form-input" placeholder="Ex: Engenheiro">
               </div>
               <div class="form-group">
-                <label class="form-label">Renda Declarada (R$)</label>
+                <label for="client-income" class="form-label">Renda Declarada (R$)</label>
                 <input type="number" step="0.01" id="client-income" class="form-input" placeholder="0.00">
               </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 1.25rem;">
-              <label class="form-label">Endereço Residencial/Comercial</label>
+              <label for="client-address" class="form-label">Endereço Residencial/Comercial</label>
               <input type="text" id="client-address" class="form-input" placeholder="Rua, Número, Bairro, Cidade - UF">
             </div>
 
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" onclick="ClientsView.closeModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary" data-fechar onclick="ClientsView.closeModal()">Cancelar</button>
               <button type="submit" class="btn btn-primary">Salvar Cliente</button>
             </div>
           </form>
@@ -263,7 +267,7 @@ const ClientsView = {
   openModal(id = null) {
     const modal = document.getElementById('client-modal');
     const title = document.getElementById('client-modal-title');
-    modal.style.display = 'flex';
+    Utils.abrirModal('client-modal');
 
     if (id) {
       const client = Storage.getClients().find(c => c.id === id);
@@ -292,7 +296,7 @@ const ClientsView = {
   },
 
   closeModal() {
-    document.getElementById('client-modal').style.display = 'none';
+    Utils.fecharModal('client-modal');
   },
 
   saveClient(e) {
@@ -319,10 +323,12 @@ const ClientsView = {
   },
 
   deleteClient(id) {
-    if (confirm('Deseja realmente excluir este cliente?')) {
-      Storage.deleteClient(id);
-      Utils.toast('Cliente excluído!');
-      this.render(document.getElementById('main-content'));
-    }
+    this.fecharDetalhe();
+    Storage.excluirComDesfazer({
+      cache: 'clientsCache', recurso: 'clients', id,
+      msgErro: 'O cliente NÃO foi excluído da nuvem:',
+      aviso: 'Cliente excluído.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); }
+    });
   }
 };

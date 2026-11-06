@@ -307,20 +307,95 @@ const Utils = {
     return saida;
   },
 
+  // ── Modais (.modal-backdrop) ──
+  // Abrir/fechar passa por aqui para todo modal ter: papel de diálogo com nome
+  // (o primeiro título do cartão), foco no primeiro campo e o foco de volta em
+  // quem abriu. O Esc é um ouvinte só (App.init) que clica no [data-fechar] do
+  // modal do topo — assim ele faz a mesma limpeza do botão (câmera, estado).
+  // ponytail: sem prender o Tab dentro do modal; vira <dialog> se precisar.
+  abrirModal(id) {
+    const modal = document.getElementById(id);
+    const card = modal.querySelector('.modal-card');
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    const titulo = card.querySelector('h1, h2, h3, h4');
+    if (titulo) {
+      titulo.id = titulo.id || id + '-titulo';
+      card.setAttribute('aria-labelledby', titulo.id);
+    }
+    modal._voltaFoco = document.activeElement;
+    modal.style.display = 'flex';
+    // Sem campo, o foco vai no Fechar — nunca no primeiro botão, que nos
+    // painéis de detalhe é o "Excluir" (um Enter distraído excluiria).
+    const alvo = card.querySelector('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])')
+      || card.querySelector('[data-fechar]') || card.querySelector('button');
+    if (alvo) alvo.focus();
+  },
+
+  fecharModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.style.display = 'none';
+    const volta = modal._voltaFoco;
+    modal._voltaFoco = null;
+    if (volta && volta.isConnected) volta.focus();
+  },
+
+  // ── Erro no próprio campo ──
+  // Mensagem logo abaixo do campo, ligada por aria-describedby, e
+  // aria-invalid para o leitor de tela. Quem chama decide o foco.
+  marcarErro(el, msg) {
+    if (!el) return;
+    let p = el.parentElement.querySelector('.form-erro');
+    if (!p) {
+      p = document.createElement('p');
+      p.className = 'form-erro';
+      p.id = (el.id || 'campo') + '-erro';
+      el.after(p);
+    }
+    p.textContent = msg;
+    el.setAttribute('aria-invalid', 'true');
+    el.setAttribute('aria-describedby', p.id);
+  },
+
+  limparErro(el) {
+    if (!el || !el.hasAttribute('aria-invalid')) return;
+    el.removeAttribute('aria-invalid');
+    el.removeAttribute('aria-describedby');
+    const p = el.parentElement.querySelector('.form-erro');
+    if (p) p.remove();
+  },
+
   // ── Toast (feedback não-bloqueante, substitui alert) ──
-  toast(msg, type = 'success') {
+  toast(msg, type = 'success', ms = 4500) {
     let box = document.getElementById('toast-box');
     if (!box) {
       box = document.createElement('div');
       box.id = 'toast-box';
+      // leitor de tela anuncia cada aviso novo sem roubar o foco
+      box.setAttribute('role', 'status');
+      box.setAttribute('aria-live', 'polite');
       document.body.appendChild(box);
     }
     const el = document.createElement('div');
     el.className = 'toast toast-' + type;
     el.textContent = msg;
     box.appendChild(el);
-    setTimeout(() => el.classList.add('toast-out'), 4500);
-    setTimeout(() => el.remove(), 4900);
+    setTimeout(() => el.classList.add('toast-out'), ms);
+    setTimeout(() => el.remove(), ms + 400);
+    return el;
+  },
+
+  // Toast com botão "Desfazer", que fica na tela enquanto dá para desfazer.
+  toastDesfazer(msg, ms, desfazer) {
+    const el = this.toast(msg, 'success', ms);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-desfazer';
+    btn.textContent = 'Desfazer';
+    btn.onclick = () => { el.remove(); desfazer(); };
+    el.append(' ', btn);
+    return el;
   },
 
   // ── Número por extenso (1..99) ──

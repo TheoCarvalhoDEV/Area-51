@@ -91,7 +91,6 @@ const Vistorias = {
               </div>
               <div class="renov-acoes">
                 <button class="btn btn-primary btn-sm" onclick="Vistorias.abrir('${Utils.esc(v.id)}')">Abrir</button>
-                <button class="btn btn-danger btn-sm" onclick="Vistorias.excluir('${Utils.esc(v.id)}')">Excluir</button>
               </div>
             </div>
           `;
@@ -132,7 +131,7 @@ const Vistorias = {
                 value="${Utils.esc(new Date().toISOString().slice(0, 10))}">
             </div>
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" onclick="Vistorias.fecharModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary" data-fechar onclick="Vistorias.fecharModal()">Cancelar</button>
               <button type="submit" class="btn btn-primary">Criar vistoria</button>
             </div>
           </form>
@@ -161,6 +160,7 @@ const Vistorias = {
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn btn-secondary" onclick="Vistorias.voltar()">Voltar</button>
+          <button class="btn btn-danger" onclick="Vistorias.excluir('${Utils.esc(v.id)}')">Excluir</button>
           ${fechada
             ? `<button class="btn btn-secondary" onclick="Vistorias.reabrir('${Utils.esc(v.id)}')">Reabrir</button>`
             : `<button class="btn btn-primary" onclick="Vistorias.fechar('${Utils.esc(v.id)}')">Fechar vistoria</button>`}
@@ -209,8 +209,8 @@ const Vistorias = {
               </div>
 
               <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label">Observações</label>
-                <textarea class="form-textarea" rows="2" ${fechada ? 'disabled' : ''}
+                <label class="form-label" for="vist-obs-${i}">Observações</label>
+                <textarea class="form-textarea" rows="2" id="vist-obs-${i}" ${fechada ? 'disabled' : ''}
                   placeholder="Ex.: pintura descascando atrás da porta"
                   onchange="Vistorias.setObs('${Utils.esc(v.id)}', ${i}, this.value)">${Utils.esc(r.obs || '')}</textarea>
               </div>
@@ -233,15 +233,15 @@ const Vistorias = {
               <div class="mini-bar-head" style="margin:0;"><span class="text-muted">Data</span><b>${Utils.esc(Utils.formatDate(v.inspected_on))}</b></div>
             ` : `
               <div class="form-group" style="margin:0;">
-                <label class="form-label">Momento</label>
-                <select class="form-input" onchange="Vistorias.setCampo('${Utils.esc(v.id)}', 'tipo', this.value)">
+                <label class="form-label" for="vist-tipo">Momento</label>
+                <select class="form-input" id="vist-tipo" onchange="Vistorias.setCampo('${Utils.esc(v.id)}', 'tipo', this.value)">
                   <option value="Entrada" ${v.tipo === 'Saída' ? '' : 'selected'}>Entrada</option>
                   <option value="Saída" ${v.tipo === 'Saída' ? 'selected' : ''}>Saída</option>
                 </select>
               </div>
               <div class="form-group" style="margin:0;">
-                <label class="form-label">Data da vistoria</label>
-                <input class="form-input" type="date" value="${Utils.esc(v.inspected_on || '')}"
+                <label class="form-label" for="vist-data">Data da vistoria</label>
+                <input class="form-input" type="date" id="vist-data" value="${Utils.esc(v.inspected_on || '')}"
                   onchange="Vistorias.setCampo('${Utils.esc(v.id)}', 'inspected_on', this.value)">
               </div>
             `}
@@ -280,7 +280,7 @@ const Vistorias = {
               onchange="Vistorias.guardar(this.files[0])">
             <button type="button" class="btn btn-secondary"
               onclick="document.getElementById('captura-arquivo').click()">Escolher arquivo</button>
-            <button type="button" class="btn btn-secondary" onclick="Vistorias.fecharCaptura()">Cancelar</button>
+            <button type="button" class="btn btn-secondary" data-fechar onclick="Vistorias.fecharCaptura()">Cancelar</button>
             <button type="button" class="btn btn-primary" id="captura-acao" onclick="Vistorias.capturar()">Capturar</button>
           </div>
         </div>
@@ -294,11 +294,11 @@ const Vistorias = {
       Utils.toast('Cadastre um imóvel antes da primeira vistoria.', 'error');
       return;
     }
-    document.getElementById('vistoria-modal').style.display = 'flex';
+    Utils.abrirModal('vistoria-modal');
   },
 
   fecharModal() {
-    document.getElementById('vistoria-modal').style.display = 'none';
+    Utils.fecharModal('vistoria-modal');
   },
 
   criarDoForm(e) {
@@ -424,7 +424,7 @@ const Vistorias = {
     const acao = document.getElementById('captura-acao');
     if (acao) acao.textContent = tipo === 'foto' ? 'Capturar' : 'Gravar';
 
-    document.getElementById('captura-modal').style.display = 'flex';
+    Utils.abrirModal('captura-modal');
     Midias.abrirCamera(document.getElementById('captura-video'), tipo === 'video');
   },
 
@@ -432,8 +432,7 @@ const Vistorias = {
     Midias.pararGravacao();
     Midias.fecharCamera();
     this.captura = null;
-    const modal = document.getElementById('captura-modal');
-    if (modal) modal.style.display = 'none';
+    Utils.fecharModal('captura-modal');
   },
 
   // Foto sai num quadro; vídeo alterna gravar/parar no mesmo botão.
@@ -535,11 +534,12 @@ const Vistorias = {
   },
 
   excluir(id) {
-    if (!confirm('Excluir esta vistoria? A ação não pode ser desfeita.')) return;
-    Storage.deleteInspection(id);
-    if (this.abertaId === id) this.abertaId = null;
-    Utils.toast('Vistoria excluída.');
-    this.render(document.getElementById('main-content'));
-    App.reaplicarBusca();
+    if (this.abertaId === id) this.abertaId = null; // volta para a lista
+    Storage.excluirComDesfazer({
+      cache: 'inspectionsCache', recurso: 'inspections', id,
+      msgErro: 'A vistoria NÃO foi excluída da nuvem:',
+      aviso: 'Vistoria excluída.',
+      redesenhar: () => { this.render(document.getElementById('main-content')); App.reaplicarBusca(); }
+    });
   }
 };
